@@ -1,0 +1,67 @@
+[package]
+name = "lumicore"
+version = "0.1.0"
+edition = "2021"
+authors = ["May B. Knott <MayKnott@proton.me>"]
+repository = "https://github.com/maybeknott/luminet"
+description = "High-performance network scanning engine for LumiNet"
+license = "AGPL-3.0-only"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+socket2 = { version = "0.5", features = ["all"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libc = "0.2"
+ring = "0.17"
+log = "0.4"
+env_logger = "0.11"
+thiserror = "2"
+bytes = "1"
+rand = "0.8"
+trust-dns-proto = "0.23"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-pki-types = "1"
+rustls-pemfile = "2"
+webpki-roots = "0.26"
+x509-parser = "0.16"
+rcgen = { version = "0.13", features = ["x509-parser"] }
+directories = "5"
+futures = "0.3"
+tracing = "0.1"
+time = "0.3"
+async-trait = "0.1"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_Networking_WinSock",
+    "Win32_Foundation",
+    "Win32_System_IO",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "0.21", default-features = false }
+tun2proxy = { version = "0.7", default-features = false, features = ["udpgw"] }
+
+[target.'cfg(target_os = "ios")'.dependencies]
+leaf = { git = "https://github.com/eycorsican/leaf", package = "leaf", default-features = false, features = ["default-ring"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.release-ios]
+inherits = "release"
+panic = "unwind"
+strip = false

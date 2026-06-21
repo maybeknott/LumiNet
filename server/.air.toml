@@ -1,0 +1,44 @@
+# .air.toml — Air hot-reload configuration for LumiNet Go server
+# https://github.com/air-verse/air
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Command to build the binary
+  cmd = "go build -o ./tmp/luminet.exe ."
+  # Binary to run after build
+  bin = "./tmp/luminet.exe"
+  # Arguments passed to the binary
+  args_bin = ["serve", "--port", "8470", "--no-browser"]
+  # Watch these extensions for changes
+  include_ext = ["go", "toml"]
+  # Exclude these directories
+  exclude_dir = ["assets", "tmp", "vendor", "web"]
+  # Exclude files matching these patterns
+  exclude_file = []
+  # Stop old process before starting new one
+  kill_delay = "200ms"
+  # Send Interrupt signal before Kill
+  send_interrupt = true
+  # Rerun on file change even if build failed
+  rerun = false
+  # Delay before rerun
+  rerun_delay = 500
+
+[log]
+  # Show timestamp in log
+  time = true
+  # Only show main log (build & run)
+  main_only = false
+
+[color]
+  # Customise each part's color. If no color found, use default.
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = true

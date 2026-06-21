@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-15T20:20:00Z",
+  "title": "Design System: LumiNet",
+  "extensions": {
+    "colorMeta": {
+      "bg-primary": { "role": "neutral", "displayName": "Space Void Navy", "canonical": "oklch(12% 0.02 245)" },
+      "bg-secondary": { "role": "neutral", "displayName": "Deep Steel Blue", "canonical": "oklch(16% 0.03 245)" },
+      "accent": { "role": "primary", "displayName": "Electric Blue Accent", "canonical": "oklch(60% 0.20 250)" },
+      "success": { "role": "success", "displayName": "Terminal Green", "canonical": "oklch(65% 0.20 140)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Font", "purpose": "Headers and page titles." },
+      "body": { "displayName": "Body Font", "purpose": "Core description and instructions." },
+      "mono": { "displayName": "Mono Font", "purpose": "IP addresses, ports, telemetry, and logs." }
+    },
+    "shadows": [
+      { "name": "Cockpit Glow", "value": "0 0 20px rgba(59, 130, 246, 0.15)", "purpose": "Active indicator highlight." },
+      { "name": "Glass Drop", "value": "0 8px 32px rgba(0, 0, 0, 0.5)", "purpose": "Dialog overlay shadow." }
+    ],
+    "motion": [
+      { "name": "ease-base", "value": "200ms ease", "purpose": "Standard state transitions." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action triggers.",
+      "html": "<button class=\"ds-btn-primary\">Execute Audit</button>",
+      "css": ".ds-btn-primary { background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #ffffff; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; font-family: 'Outfit', sans-serif; font-size: 14px; cursor: pointer; transition: all 200ms ease; } .ds-btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Information and telemetry container.",
+      "html": "<div class=\"ds-card\"><h4 class=\"ds-card-title\">CPU Engine</h4><p class=\"ds-card-text\">Daemon connection status and load logs.</p></div>",
+      "css": ".ds-card { background: rgba(30, 41, 59, 0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 24px; color: #f8fafc; font-family: 'Outfit', sans-serif; cursor: pointer; transition: all 200ms ease; } .ds-card:hover { border-color: rgba(255, 255, 255, 0.15); transform: translateY(-2px); } .ds-card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; } .ds-card-text { font-size: 13px; color: #94a3b8; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Sovereign Glass Command Cockpit",
+    "overview": "LumiNet utilizes a technical, high-precision visual design that balances functional density with immersive aesthetic polish. The environment is dark-first, reflecting the typical physical context of researchers and power users auditing hostile networks in low-light environments.",
+    "keyCharacteristics": [
+      "Deep dark navy surfaces with subtle glass backdrops.",
+      "Vibrant, data-carrying neon indicators (cyan for CPU, purple for Memory, green for success status).",
+      "High-contrast, scannability-first technical typography pairing Outfit with JetBrains Mono."
+    ],
+    "rules": [
+      { "name": "The Rarity of Glow Rule", "body": "Glow shadows and neon colors must only be used on active indicators, status dots, or hover actions. Static headers or labels must never use glow effects or neon gradients.", "section": "colors" },
+      { "name": "The Flat-Border Rule", "body": "Depth is created using borders with 6% to 12% white opacity. Drop shadows are strictly reserved for popovers, notifications, and telemetry glows.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use var(--font-mono) (JetBrains Mono) for all IP addresses, port lists, status messages, and latency numbers.",
+      "Do maintain high contrast (> 4.5:1) for all status text on dark panels.",
+      "Do use smooth transitions (150ms-200ms) on hover states to keep the console responsive."
+    ],
+    "donts": [
+      "Don't use emojis as icons; always use SVG elements or Lucide icons.",
+      "Don't use warm-beige or cream color schemes that look like marketing landing templates.",
+      "Don't use layout-shifting scale hover properties on charts or tables."
+    ]
+  }
+}

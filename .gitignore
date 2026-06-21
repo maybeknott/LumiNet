@@ -1,0 +1,151 @@
+# ============================================================================
+# LumiNet — Comprehensive .gitignore
+# ============================================================================
+
+# ── Rust ───────────────────────────────────────────────────────────────────
+/target/
+**/target/
+**/*.rs.bk
+*.rlib
+*.rmeta
+Cargo.lock
+# Keep Cargo.lock for the workspace root (binary crate)
+!/Cargo.lock
+
+# ── Go ─────────────────────────────────────────────────────────────────────
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# ── Node.js / Frontend ────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+!server/web/dist/.gitkeep
+.vite/
+*.tsbuildinfo
+.pnpm-store/
+.npm/
+.yarn/
+.pnp.*
+
+# ── Build Artifacts ───────────────────────────────────────────────────────
+/build/
+server/build/
+/out/
+/release/
+/bin/
+*.o
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.map
+luminet
+luminet.exe
+luminet_core.h
+luminet_core.dll
+luminet_core.so
+luminet_core.dylib
+
+# ── IDE & Editors ─────────────────────────────────────────────────────────
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ── OS Files ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ── Environment & Secrets ────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ── Databases ─────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+
+# ── Temp Files ────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.cache
+
+# ── Coverage & Profiling ─────────────────────────────────────────────────
+coverage/
+*.lcov
+*.gcov
+*.gcda
+*.gcno
+htmlcov/
+.nyc_output/
+*.prof
+*.pprof
+cpu.out
+mem.out
+trace.out
+
+# ── Documentation Build ──────────────────────────────────────────────────
+/docs/_build/
+/site/
+
+# ── Archives ──────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ── Porting Staging Area ──────────────────────────────────────────────────
+/PORT/
+/stage_repos/
+
