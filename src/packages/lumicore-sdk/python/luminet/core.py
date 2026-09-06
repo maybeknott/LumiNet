@@ -9,7 +9,6 @@ import json
 import os
 import platform
 import socket
-import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -152,16 +151,32 @@ class EvasionSocket:
     def send_evasive(self, data: bytes) -> int:
         """Sends data by splitting at desync_offset and delaying second chunk."""
         if len(data) <= self.desync_offset:
-            return self._sock.send(data)
+            return self._send_all(data)
 
         chunk1 = data[:self.desync_offset]
         chunk2 = data[self.desync_offset:]
 
-        sent1 = self._sock.send(chunk1)
+        sent1 = self._send_all(chunk1)
         if self.desync_delay_ms > 0:
             time.sleep(self.desync_delay_ms / 1000.0)
-        sent2 = self._sock.send(chunk2)
+        sent2 = self._send_all(chunk2)
         return sent1 + sent2
+
+    def _send_all(self, data: bytes) -> int:
+        """Sends data until it is fully written; returns total bytes sent.
+
+        socket.send() may accept fewer bytes than requested, which would
+        silently truncate a chunk. Loop until the buffer drains so evasive
+        writes are byte-complete.
+        """
+        total = 0
+        view = memoryview(data)
+        while total < len(data):
+            sent = self._sock.send(view[total:])
+            if sent <= 0:
+                break
+            total += sent
+        return total
 
     def recv(self, bufsize: int) -> bytes:
         return self._sock.recv(bufsize)

@@ -7,12 +7,14 @@ export interface UiLeakRecord {
 export class LeakGuardSupervisor {
   public killswitchActive: boolean = true;
   private leaks: UiLeakRecord[] = [];
-
-  constructor(
-    public tunnelIface: string,
-    public allowedDns: string[],
-    public blockIpv6: boolean = true
-  ) {}
+  public tunnelIface: string;
+  public allowedDns: string[];
+  public blockIpv6: boolean;
+  constructor(tunnelIface: string, allowedDns: string[], blockIpv6: boolean = true) {
+    this.tunnelIface = tunnelIface;
+    this.allowedDns = allowedDns;
+    this.blockIpv6 = blockIpv6;
+  }
 
   validateOutbound(dstIp: string, dstPort: number, iface: string): boolean {
     if (!this.killswitchActive) return true;

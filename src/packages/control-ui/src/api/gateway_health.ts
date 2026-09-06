@@ -1,8 +1,9 @@
-export enum GatewayStatus {
-  Online = 'online',
-  Degraded = 'degraded',
-  Offline = 'offline'
-}
+export const GatewayStatus = {
+  Online: 'online',
+  Degraded: 'degraded',
+  Offline: 'offline',
+} as const;
+export type GatewayStatus = (typeof GatewayStatus)[keyof typeof GatewayStatus];
 
 export interface GatewayMetric {
   ip: string;
@@ -13,14 +14,20 @@ export interface GatewayMetric {
 
 export class GatewayHealthMonitor {
   private readonly gateways = new Map<string, GatewayMetric>();
-
-  constructor(
-    private readonly lossDegraded = 0.20,
-    private readonly lossOffline = 0.50
-  ) {}
+  private readonly lossDegraded;
+  private readonly lossOffline;
+  constructor(lossDegraded = 0.2, lossOffline = 0.5) {
+    this.lossDegraded = lossDegraded;
+    this.lossOffline = lossOffline;
+  }
 
   public registerGateway(ip: string): void {
-    this.gateways.set(ip, { ip, latencyMs: 0, packetLoss: 0, status: GatewayStatus.Online });
+    this.gateways.set(ip, {
+      ip,
+      latencyMs: 0,
+      packetLoss: 0,
+      status: GatewayStatus.Online,
+    });
   }
 
   public recordProbe(ip: string, latencyMs: number, loss: number): void {

@@ -762,7 +762,7 @@
     },
     {
       "family_id": "family:historical-porting-records",
-      "status": "inventory",
+      "status": "historical",
       "disposition": "quarantine",
       "canonical_peer_id": "peer:porting-progress-record",
       "peers": [
@@ -770,8 +770,8 @@
           "peer_id": "peer:porting-progress-record",
           "source_ref": "source:luminet-repository",
           "path": "docs/porting/archive/porting_progress.json",
-          "state": "live",
-          "role": "historical porting tracker",
+          "state": "historical",
+          "role": "retired historical porting tracker; content preserved only as the topology baseline sha256",
           "preserved_details": [
             "project aliases",
             "target claims",
@@ -779,12 +779,14 @@
           ],
           "consumers": [],
           "verification_evidence": [
-            "deterministic provenance generation"
+            "topology retirement record (2026-09 remediation) marks the baseline path retired",
+            "original-baseline.tsv sha256 anchors the retired content"
           ],
           "disposition": "quarantine",
           "provenance": {
+            "immutable_ref": "sha256:a75b74e27975baa52aeebfa17a5b3a65fa825b8e8d8cc85e693046c66a7a0a20",
             "evidence": [
-              "repository historical artifact"
+              "immutable baseline content retired with the legacy porting archive; no canonical copy survives"
             ]
           }
         }

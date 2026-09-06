@@ -37,7 +37,8 @@ function sha256Sync(data: string): string {
     words[j] = (words[j] || 0) | ((data.charCodeAt(i) & 0xff) << ((3 - (i % 4)) * 8));
   }
 
-  words[asciiBitLength >> 5] |= 0x80 << (24 - (asciiBitLength % 32));
+  words[asciiBitLength >> 5] =
+    (words[asciiBitLength >> 5] || 0) | (0x80 << (24 - (asciiBitLength % 32)));
   words[(((asciiBitLength + 64) >> 9) << 4) + 15] = asciiBitLength;
 
   for (let j = 0; j < words.length; j += 16) {
@@ -47,19 +48,26 @@ function sha256Sync(data: string): string {
     }
 
     for (let i = 16; i < 64; i++) {
-      const w15 = w[i - 15];
-      const w2 = w[i - 2];
+      const w15 = w[i - 15] || 0;
+      const w2 = w[i - 2] || 0;
       const s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
       const s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
-      w[i] = ((w[i - 16] + s0 + w[i - 7] + s1) | 0);
+      w[i] = ((w[i - 16] || 0) + s0 + (w[i - 7] || 0) + s1) | 0;
     }
 
-    let [a, b, c, d, e, f, g, h] = hash;
+    let a = hash[0] || 0;
+    let b = hash[1] || 0;
+    let c = hash[2] || 0;
+    let d = hash[3] || 0;
+    let e = hash[4] || 0;
+    let f = hash[5] || 0;
+    let g = hash[6] || 0;
+    let h = hash[7] || 0;
 
     for (let i = 0; i < 64; i++) {
       const s1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
       const ch = (e & f) ^ (~e & g);
-      const temp1 = (h + s1 + ch + k[i] + w[i]) | 0;
+      const temp1 = (h + s1 + ch + (k[i] || 0) + (w[i] || 0)) | 0;
       const s0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (s0 + maj) | 0;
@@ -74,19 +82,19 @@ function sha256Sync(data: string): string {
       a = (temp1 + temp2) | 0;
     }
 
-    hash[0] = (hash[0] + a) | 0;
-    hash[1] = (hash[1] + b) | 0;
-    hash[2] = (hash[2] + c) | 0;
-    hash[3] = (hash[3] + d) | 0;
-    hash[4] = (hash[4] + e) | 0;
-    hash[5] = (hash[5] + f) | 0;
-    hash[6] = (hash[6] + g) | 0;
-    hash[7] = (hash[7] + h) | 0;
+    hash[0] = ((hash[0] || 0) + a) | 0;
+    hash[1] = ((hash[1] || 0) + b) | 0;
+    hash[2] = ((hash[2] || 0) + c) | 0;
+    hash[3] = ((hash[3] || 0) + d) | 0;
+    hash[4] = ((hash[4] || 0) + e) | 0;
+    hash[5] = ((hash[5] || 0) + f) | 0;
+    hash[6] = ((hash[6] || 0) + g) | 0;
+    hash[7] = ((hash[7] || 0) + h) | 0;
   }
 
   for (let i = 0; i < 8; i++) {
     for (let j = 3; j >= 0; j--) {
-      const byte = (hash[i] >> (j * 8)) & 0xff;
+      const byte = ((hash[i] || 0) >> (j * 8)) & 0xff;
       result += (byte < 16 ? '0' : '') + byte.toString(16);
     }
   }

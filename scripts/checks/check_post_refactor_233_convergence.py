@@ -3,7 +3,10 @@ from __future__ import annotations
 import csv,hashlib,json,os,stat,sys,zipfile
 from collections import defaultdict
 from pathlib import Path,PurePosixPath
-ROOT=Path(os.environ.get('LUMINET_233_TARGET_ROOT',Path(__file__).resolve().parents[2]));WORK=Path(os.environ.get('LUMINET_233_WORK_ROOT','/mnt/data/luminet233_work'));E=ROOT/'governance/convergence';BASE=E/'post-refactor-233-baseline-files.csv';DON=WORK/'donors'
+ROOT=Path(os.environ.get('LUMINET_233_TARGET_ROOT',Path(__file__).resolve().parents[2]));WORK=Path(os.environ.get('LUMINET_233_WORK_ROOT','/mnt/data/luminet233_work'))
+if not WORK.is_dir():
+ print(f'SKIP: post-refactor-233 donor archives not mounted at {WORK}; the donor cross-check is machine-local and cannot run here.')
+ sys.exit(0);E=ROOT/'governance/convergence';BASE=E/'post-refactor-233-baseline-files.csv';DON=WORK/'donors'
 ROOTS={'location':'location-main','gfw_resist_https_proxy':'gfw_resist_HTTPS_proxy-main','kscanner':'kscanner-main','dnsrefiner':'DnsRefiner-main','exitmap':'exitmap-main','candyconnect':'CandyConnect-main','psiphon_over_mitm':'PsiphonOverMITM-main','personal_security_checklist':'personal-security-checklist-master','orbot_apple':'orbot-apple-main','karing':'karing-main','fptn':'fptn-master','https_everywhere':'https-everywhere-master'}
 HIGH={'implementation','ui-or-product','configuration','deployment','script','test'}; assertions=0;errors=[]
 def check(c,m):

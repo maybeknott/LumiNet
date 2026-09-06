@@ -20,9 +20,9 @@ export class DnsDropFilter {
       return true;
     }
 
-    const answerRRs = (dnsPayload[6] << 8) | dnsPayload[7];
-    const authRRs = (dnsPayload[8] << 8) | dnsPayload[9];
-    const aaBit = (dnsPayload[2] & 0x04) !== 0;
+    const answerRRs = (dnsPayload[6]! << 8) | dnsPayload[7]!;
+    const authRRs = (dnsPayload[8]! << 8) | dnsPayload[9]!;
+    const aaBit = (dnsPayload[2]! & 0x04) !== 0;
 
     if (answerRRs === 1 && authRRs === 0 && aaBit) {
       this.droppedCount++;

@@ -8,17 +8,14 @@ export class ReplayResistantTunnelSession {
   private sessionKey: Uint8Array;
   private lastRemoteSeq = 0;
   private seenNonces = new Set<string>();
-
-  constructor(
-    public config: ReplayResistantConfig,
-    clientRandom: Uint8Array,
-    serverRandom: Uint8Array
-  ) {
+  public config: ReplayResistantConfig;
+  constructor(config: ReplayResistantConfig, clientRandom: Uint8Array, serverRandom: Uint8Array) {
+    this.config = config;
     this.sessionKey = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
-      const p = config.psk[i % config.psk.length];
-      const c = clientRandom[i % clientRandom.length];
-      const s = serverRandom[i % serverRandom.length];
+      const p = config.psk[i % config.psk.length]!;
+      const c = clientRandom[i % clientRandom.length]!;
+      const s = serverRandom[i % serverRandom.length]!;
       this.sessionKey[i] = (p ^ c ^ s ^ (i * 17)) & 0xff;
     }
   }
@@ -32,30 +29,33 @@ export class ReplayResistantTunnelSession {
 
     const nonce = new Uint8Array(12);
     for (let i = 0; i < 8; i++) {
-      nonce[i] = packet[i] ^ this.sessionKey[i];
+      nonce[i] = packet[i]! ^ this.sessionKey[i]!;
     }
     for (let i = 0; i < 4; i++) {
-      nonce[8 + i] = packet[8 + i] ^ this.sessionKey[8 + i];
+      nonce[8 + i] = packet[8 + i]! ^ this.sessionKey[8 + i]!;
     }
     packet.set(nonce, 16);
 
     for (let i = 0; i < payload.length; i++) {
-      const k = this.sessionKey[(i + nonce[i % 12]) % this.sessionKey.length];
-      packet[28 + i] = payload[i] ^ k;
+      const k = this.sessionKey[(i + nonce[i % 12]!) % this.sessionKey.length]!;
+      packet[28 + i] = payload[i]! ^ k;
     }
 
     let mac = 0;
     for (let i = 0; i < 28 + payload.length; i++) {
-      mac = (mac * 31 + packet[i]) & 0xffffffff;
+      mac = (mac * 31 + packet[i]!) & 0xffffffff;
     }
     for (let i = 0; i < 16; i++) {
-      packet[28 + payload.length + i] = (mac >> (i % 4 * 8)) & 0xff;
+      packet[28 + payload.length + i] = (mac >> ((i % 4) * 8)) & 0xff;
     }
 
     return packet;
   }
 
-  openPacket(packet: Uint8Array, currentTime: number): { sequence: number; timestamp: number; payload: Uint8Array } {
+  openPacket(
+    packet: Uint8Array,
+    currentTime: number,
+  ): { sequence: number; timestamp: number; payload: Uint8Array } {
     if (packet.length < 28 + 16) {
       throw new Error('Packet too short');
     }
@@ -80,10 +80,10 @@ export class ReplayResistantTunnelSession {
     const bodyEnd = packet.length - 16;
     let mac = 0;
     for (let i = 0; i < bodyEnd; i++) {
-      mac = (mac * 31 + packet[i]) & 0xffffffff;
+      mac = (mac * 31 + packet[i]!) & 0xffffffff;
     }
     for (let i = 0; i < 16; i++) {
-      const expected = (mac >> (i % 4 * 8)) & 0xff;
+      const expected = (mac >> ((i % 4) * 8)) & 0xff;
       if (packet[bodyEnd + i] !== expected) {
         throw new Error('Integrity verification failed');
       }
@@ -97,8 +97,8 @@ export class ReplayResistantTunnelSession {
     const decrypted = new Uint8Array(payloadLen);
     const nonce = packet.subarray(16, 28);
     for (let i = 0; i < payloadLen; i++) {
-      const k = this.sessionKey[(i + nonce[i % 12]) % this.sessionKey.length];
-      decrypted[i] = packet[28 + i] ^ k;
+      const k = this.sessionKey[(i + nonce[i % 12]!) % this.sessionKey.length]!;
+      decrypted[i] = packet[28 + i]! ^ k;
     }
 
     if (this.seenNonces.size >= this.config.maxTrackedNonces) {

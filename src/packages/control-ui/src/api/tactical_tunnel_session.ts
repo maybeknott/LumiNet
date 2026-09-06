@@ -12,7 +12,7 @@ export const OBFUSCATE_SEED_LENGTH = 16;
 export const OBFUSCATE_KEY_LENGTH = 16;
 export const OBFUSCATE_HASH_ITERATIONS = 6000;
 export const OBFUSCATE_MAX_PADDING = 8192;
-export const OBFUSCATE_MAGIC_VALUE = 0x0BF5CA7E;
+export const OBFUSCATE_MAGIC_VALUE = 0x0bf5ca7e;
 export const PREAMBLE_HEADER_LENGTH = OBFUSCATE_SEED_LENGTH + 8;
 
 export interface TacticalSessionConfig {
@@ -25,7 +25,13 @@ export interface TacticalSessionConfig {
 
 export interface TacticalTunnelStats {
   tunnelId: string;
-  activeProtocol: 'FRONTED_HTTP' | 'FRONTED_MEK' | 'UNFRONTED_HTTP' | 'OSSH_TUNNEL' | 'SHADOWSOCKS' | 'TLS_TUNNEL';
+  activeProtocol:
+    | 'FRONTED_HTTP'
+    | 'FRONTED_MEK'
+    | 'UNFRONTED_HTTP'
+    | 'OSSH_TUNNEL'
+    | 'SHADOWSOCKS'
+    | 'TLS_TUNNEL';
   connected: boolean;
   handshakeLatencyMs: number;
   hotSwapsCount: number;
@@ -73,22 +79,22 @@ export class TacticalStreamCipher {
     const keyLen = key.length === 0 ? 1 : key.length;
     for (let i = 0; i < 256; i++) {
       const keyByte = key.length === 0 ? 0 : key[i % keyLen];
-      j = (j + this.s[i] + keyByte) & 0xff;
+      j = (j + this.s[i]! + keyByte!) & 0xff;
       const tmp = this.s[i];
-      this.s[i] = this.s[j];
-      this.s[j] = tmp;
+      this.s[i] = this.s[j]!;
+      this.s[j] = tmp!;
     }
   }
 
   applyKeyStream(buf: Uint8Array, offset = 0, length = buf.length): void {
     for (let idx = offset; idx < offset + length; idx++) {
       this.i = (this.i + 1) & 0xff;
-      this.j = (this.j + this.s[this.i]) & 0xff;
+      this.j = (this.j + this.s[this.i]!) & 0xff;
       const tmp = this.s[this.i];
-      this.s[this.i] = this.s[this.j];
-      this.s[this.j] = tmp;
-      const k = this.s[(this.s[this.i] + this.s[this.j]) & 0xff];
-      buf[idx] ^= k;
+      this.s[this.i] = this.s[this.j]!;
+      this.s[this.j] = tmp!;
+      const k = this.s[(this.s[this.i]! + this.s[this.j]!) & 0xff]!;
+      buf[idx]! ^= k;
     }
   }
 }
@@ -96,7 +102,11 @@ export class TacticalStreamCipher {
 /**
  * Validates decrypted preamble magic and padding length.
  */
-export function validatePreambleHeader(header: Uint8Array): { magic: number; paddingLength: number; valid: boolean } {
+export function validatePreambleHeader(header: Uint8Array): {
+  magic: number;
+  paddingLength: number;
+  valid: boolean;
+} {
   if (header.length < 8) {
     return { magic: 0, paddingLength: 0, valid: false };
   }
@@ -114,7 +124,7 @@ export function matchesTacticalFilter(
   filter: TacticalFilterDto,
   region: string,
   asn: number,
-  latencyMs: number
+  latencyMs: number,
 ): boolean {
   if (filter.regions.length > 0) {
     const rLower = region.toLowerCase();
@@ -139,7 +149,7 @@ export function resolveTacticalProfile(
   filters: TacticalFilterDto[],
   region: string,
   asn: number,
-  latencyMs: number
+  latencyMs: number,
 ): TacticalProfileDto {
   const mergedParams: Record<string, string> = { ...defaultProfile.parameters };
   let appliedTtl = defaultProfile.ttlSeconds;
@@ -196,7 +206,9 @@ export class TacticalTunnelClient {
   }
 
   async exportExchangePayload(): Promise<{ payloadHex: string }> {
-    const res = await fetch(`${this.baseUrl}/exchange/export`, { method: 'POST' });
+    const res = await fetch(`${this.baseUrl}/exchange/export`, {
+      method: 'POST',
+    });
     if (!res.ok) {
       throw new Error(`Failed to export server exchange payload: ${res.statusText}`);
     }

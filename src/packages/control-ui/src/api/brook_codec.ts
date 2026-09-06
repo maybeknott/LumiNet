@@ -1,8 +1,9 @@
-export enum BrookTargetType {
-  IPv4 = 1,
-  Domain = 2,
-  IPv6 = 3
-}
+export const BrookTargetType = {
+  IPv4: 1,
+  Domain: 2,
+  IPv6: 3,
+} as const;
+export type BrookTargetType = (typeof BrookTargetType)[keyof typeof BrookTargetType];
 
 export interface BrookRequest {
   targetType: BrookTargetType;

@@ -16,11 +16,15 @@
 
 var CONFIG = {
   // Authentication key to authorize requests. Must match the client's CovertGsaKey.
-  AUTH_KEY: "covert-gsa-key-change-me",
+  // No default is provided: the relay fails closed until the operator sets a key.
+  AUTH_KEY: "",
 
   // The actual URL of your LumiNet EvasionRelayServer /tunnel endpoint.
   // Note: GsaTunnelConn routes stateful TCP sessions through this relay.
-  RELAY_URL: "https://your-evasion-relay-server.com/tunnel"
+  RELAY_URL: "https://your-evasion-relay-server.com/tunnel",
+
+  // Maximum relay hops before a request is rejected as a forwarding loop.
+  MAX_RELAY_HOPS: 2
 };
 
 function doPost(e) {
@@ -37,9 +41,19 @@ function doPost(e) {
       } catch (ex) {}
     }
 
-    if (clientAuth !== CONFIG.AUTH_KEY) {
+    // Fail closed: refuse to tunnel until the operator configures a real key.
+    if (!CONFIG.AUTH_KEY || clientAuth !== CONFIG.AUTH_KEY) {
       return ContentService.createTextOutput(JSON.stringify({
         error: "Unauthorized: Invalid or missing X-GSA-Auth-Key"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Reject requests that already traversed the maximum relay hops.
+    var inboundHop = parseInt(getHeader(e, "X-LumiNet-Relay-Hop") || "0", 10);
+    if (!isFinite(inboundHop) || inboundHop < 0 || inboundHop >= CONFIG.MAX_RELAY_HOPS) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "loop_detected",
+        request_id: getHeader(e, "X-Request-ID") || ""
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -52,7 +66,7 @@ function doPost(e) {
       contentType: "application/json",
       payload: requestBody,
       headers: {
-        "X-LumiNet-Relay-Hop": "1",
+        "X-LumiNet-Relay-Hop": String(inboundHop + 1),
         "X-GSA-Auth-Key": CONFIG.AUTH_KEY
       },
       muteHttpExceptions: true

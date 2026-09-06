@@ -7,10 +7,12 @@
 
 import {
   authorized,
+  hopCount,
   rejectHop,
   relayError,
   requestId,
   sanitizedHeaders,
+  DEFAULT_MAX_BODY_BYTES,
 } from "./fixed_http_contract.mjs";
 
 export const handler = async (event) => {
@@ -20,7 +22,7 @@ export const handler = async (event) => {
   const queryString = event.rawQueryString ? `?${event.rawQueryString}` : "";
   const reqId = headers.get("x-request-id") || `aws-${Date.now()}`;
 
-  // 1. Health check
+  // 1. Health check (public diagnostic endpoint)
   if (rawPath === "/health") {
     return {
       statusCode: 200,
@@ -29,7 +31,40 @@ export const handler = async (event) => {
     };
   }
 
-  // 2. Micro-frame Dispersal
+  // 2. Authorization — the relay must never forward without a configured
+  //    key (authorized() fails closed when no key is configured).
+  if (!authorized(new Request(`https://relay.local${rawPath}${queryString}`, { headers }), process.env)) {
+    return {
+      statusCode: 401,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: "unauthorized", request_id: reqId }),
+    };
+  }
+
+  // 3. Loop detection — reject requests that have already traversed the
+  //    maximum number of relay hops.
+  if (rejectHop(new Request(`https://relay.local${rawPath}${queryString}`, { headers }))) {
+    return {
+      statusCode: 508,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: "loop_detected", request_id: reqId }),
+    };
+  }
+
+  // 4. Body size cap.
+  if (event.body && Buffer.byteLength(event.isBase64Encoded
+      ? Buffer.from(event.body, "base64")
+      : event.body) > DEFAULT_MAX_BODY_BYTES) {
+    return {
+      statusCode: 413,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: "body_too_large", request_id: reqId }),
+    };
+  }
+
+  const relayHop = String(hopCount(headers) + 1);
+
+  // 5. Micro-frame Dispersal
   if (method === "POST" && event.body) {
     try {
       const parsedBody = event.isBase64Encoded
@@ -51,6 +86,7 @@ export const handler = async (event) => {
             "Content-Type": "application/octet-stream",
             "X-LumiNet-Session": parsedBody.session_id,
             "X-LumiNet-Seq": String(parsedBody.seq || 0),
+            "X-LumiNet-Relay-Hop": relayHop,
           },
           body: binaryData,
         });
@@ -73,7 +109,7 @@ export const handler = async (event) => {
     }
   }
 
-  // 3. Fallback direct target forwarding
+  // 6. Fallback direct target forwarding
   const targetHost = headers.get("x-target-host") || process.env.UPSTREAM_TARGET;
   if (!targetHost) {
     return {
@@ -86,7 +122,7 @@ export const handler = async (event) => {
   try {
     const outboundUrl = `https://${targetHost}${rawPath}${queryString}`;
     const cleanHeaders = sanitizedHeaders(headers);
-    cleanHeaders.set("x-luminet-relay-hop", "1");
+    cleanHeaders.set("x-luminet-relay-hop", relayHop);
 
     const reqBody = event.body
       ? event.isBase64Encoded

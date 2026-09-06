@@ -10,14 +10,15 @@ export interface CdnCandidate {
 
 export class CdnFrontPool {
   private candidates: CdnCandidate[] = [];
-
-  constructor(
-    private readonly quarantineDurationMs: number = 60_000,
-    private readonly maxCapacity: number = 100
-  ) {}
+  private readonly quarantineDurationMs: number;
+  private readonly maxCapacity: number;
+  constructor(quarantineDurationMs: number = 60000, maxCapacity: number = 100) {
+    this.quarantineDurationMs = quarantineDurationMs;
+    this.maxCapacity = maxCapacity;
+  }
 
   public addCandidate(ip: string, sni: string, port = 443): boolean {
-    if (this.candidates.some(c => c.ip === ip && c.sni === sni && c.port === port)) {
+    if (this.candidates.some((c) => c.ip === ip && c.sni === sni && c.port === port)) {
       return true;
     }
     if (this.candidates.length >= this.maxCapacity) {
@@ -30,20 +31,20 @@ export class CdnFrontPool {
       rttEmaMs: 0,
       successCount: 0,
       failureCount: 0,
-      quarantinedUntilMs: 0
+      quarantinedUntilMs: 0,
     });
     return true;
   }
 
   public recordSuccess(ip: string, rttMs: number): void {
-    const cand = this.candidates.find(c => c.ip === ip);
+    const cand = this.candidates.find((c) => c.ip === ip);
     if (!cand) return;
     cand.successCount++;
     cand.rttEmaMs = cand.rttEmaMs === 0 ? rttMs : 0.8 * cand.rttEmaMs + 0.2 * rttMs;
   }
 
   public recordFailure(ip: string, nowMs = Date.now()): void {
-    const cand = this.candidates.find(c => c.ip === ip);
+    const cand = this.candidates.find((c) => c.ip === ip);
     if (!cand) return;
     cand.failureCount++;
     if (cand.failureCount % 3 === 0) {
@@ -52,7 +53,7 @@ export class CdnFrontPool {
   }
 
   public selectBest(nowMs = Date.now()): CdnCandidate | null {
-    const healthy = this.candidates.filter(c => nowMs >= c.quarantinedUntilMs);
+    const healthy = this.candidates.filter((c) => nowMs >= c.quarantinedUntilMs);
     if (healthy.length === 0) return null;
     return healthy.reduce((best, cur) => {
       const scoreBest = best.rttEmaMs === 0 ? 50 : best.rttEmaMs;

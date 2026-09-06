@@ -8,11 +8,11 @@ Daemon tlsdecoy implementation module.
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (2): `decoy.go`, `decoy_test.go`
+- Direct files (16): `adaptive_strategy_racer.go`, `adaptive_strategy_racer_test.go`, `combined_bypass.go`, `combined_bypass_test.go`, `decoy.go`, `decoy_test.go`, `multi_strategy_fragmenter.go`, `multi_strategy_fragmenter_test.go`, `server_hello.go`, `server_hello_test.go`, `sni_fragment_conn.go`, `sni_fragment_conn_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `tlsdecoy`.
-- Notable exported surface: `BuildPaddedClientHello`, `ValidSNI`.
+- Notable exported surface: `AdaptiveStrategyRacer`, `BuildClientResponseWith`, `BuildDisposableFakeProbe`, `BuildFakeClientHello`, `BuildFakePayloadPacket`, `BuildPaddedClientHello`, `BuildServerHelloWith`, `BuildTlsRecordFrame`, `BypassMode`, `CarrierEdgeProfile` …
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/analysis/diagnostics`, `internal/runtime/proxy`.
 

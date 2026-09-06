@@ -1,9 +1,10 @@
-export enum HealthTier {
-  TierFDead = 0,
-  TierCDegraded = 1,
-  TierBGood = 2,
-  TierAExcellent = 3,
-}
+export const HealthTier = {
+  TierFDead: 0,
+  TierCDegraded: 1,
+  TierBGood: 2,
+  TierAExcellent: 3,
+} as const;
+export type HealthTier = (typeof HealthTier)[keyof typeof HealthTier];
 
 export interface NodeHealthReport {
   nodeId: string;
@@ -84,7 +85,7 @@ export class SubscriptionHealthClassifier {
     const avgRtt = Math.round(stats.samples.reduce((a, b) => a + b, 0) / stats.samples.length);
     let jitter = 0;
     for (let i = 0; i < stats.samples.length - 1; i++) {
-      jitter += Math.abs(stats.samples[i] - stats.samples[i + 1]);
+      jitter += Math.abs(stats.samples[i]! - stats.samples[i + 1]!);
     }
     if (stats.samples.length > 1) {
       jitter = Math.round(jitter / (stats.samples.length - 1));

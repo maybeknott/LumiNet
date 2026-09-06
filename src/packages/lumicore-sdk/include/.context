@@ -1,0 +1,17 @@
+# src/packages/lumicore-sdk/include
+
+## Purpose
+Source folder `src/packages/lumicore-sdk/include`. It groups the files and child modules listed below; behavior ownership stays with the nearest named module.
+
+## Contents
+- Direct files (1): `lumicore.h`
+
+## Interfaces and dependencies
+- See direct files and parent context for the interface consumed by sibling/parent modules.
+
+## Invariants
+- Do not advertise or promote dormant native surfaces without the Cargo/ABI/CGO verification gate.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

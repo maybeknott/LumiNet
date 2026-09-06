@@ -1,13 +1,13 @@
 import { MasqueDatagramTunnel } from './masque_datagram_tunnel.js';
-import { AmneziaObfsConfig } from './amnezia_obfs_parameters.js';
+import type { AmneziaObfsConfig } from './amnezia_obfs_parameters.js';
 
 export class MasqueAmneziaHybridTunnel {
   private masque: MasqueDatagramTunnel;
-
-  constructor(
-    public contextId: number,
-    public amneziaConfig: AmneziaObfsConfig
-  ) {
+  public contextId: number;
+  public amneziaConfig: AmneziaObfsConfig;
+  constructor(contextId: number, amneziaConfig: AmneziaObfsConfig) {
+    this.contextId = contextId;
+    this.amneziaConfig = amneziaConfig;
     this.masque = new MasqueDatagramTunnel(contextId);
   }
 
@@ -59,7 +59,7 @@ export class MasqueAmneziaHybridTunnel {
 
     const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
     const h = view.getUint32(0);
-    if (h !== (this.amneziaConfig.h4 >>> 0)) return null;
+    if (h !== this.amneziaConfig.h4 >>> 0) return null;
 
     return payload.slice(4);
   }

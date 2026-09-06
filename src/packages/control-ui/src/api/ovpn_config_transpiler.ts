@@ -59,24 +59,24 @@ export class OvpnConfigTranspiler {
 
       switch (tokens[0]) {
         case 'remote':
-          if (tokens.length >= 2) profile.remoteHost = tokens[1];
+          if (tokens.length >= 2) profile.remoteHost = tokens[1]!;
           if (tokens.length >= 3) {
-            const p = parseInt(tokens[2], 10);
+            const p = parseInt(tokens[2]!, 10);
             if (!isNaN(p)) profile.remotePort = p;
           }
-          if (tokens.length >= 4) profile.proto = tokens[3].toLowerCase();
+          if (tokens.length >= 4) profile.proto = tokens[3]!.toLowerCase();
           break;
         case 'proto':
-          if (tokens.length >= 2) profile.proto = tokens[1].toLowerCase();
+          if (tokens.length >= 2) profile.proto = tokens[1]!.toLowerCase();
           break;
         case 'dev':
-          if (tokens.length >= 2) profile.dev = tokens[1];
+          if (tokens.length >= 2) profile.dev = tokens[1]!;
           break;
         case 'cipher':
-          if (tokens.length >= 2) profile.cipher = tokens[1];
+          if (tokens.length >= 2) profile.cipher = tokens[1]!;
           break;
         case 'auth':
-          if (tokens.length >= 2) profile.auth = tokens[1];
+          if (tokens.length >= 2) profile.auth = tokens[1]!;
           break;
         case 'route':
           if (tokens.length >= 2) profile.routes.push(tokens.slice(1).join(' '));

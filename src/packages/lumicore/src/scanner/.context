@@ -4,7 +4,7 @@
 Native scanner engines/planning primitives.
 
 ## Contents
-- Direct files (5): `dns_scanner.rs`, `edge_prober.rs`, `mod.rs`, `network_shuffle_scanner.rs`, `packet_crafting.rs`
+- Direct files (25): `backend_prober.rs`, `cdn_front_pool.rs`, `check_host_prober.rs`, `dns_prober.rs`, `dns_scanner.rs`, `edge_prober.rs`, `edge_worker_selector.rs`, `flow_latency.rs`, `gateway_scanner.rs`, `host_walker.rs`, `ja.rs`, `latency_race_selector.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

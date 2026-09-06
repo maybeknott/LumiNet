@@ -1,8 +1,9 @@
-export enum BlacklistVerdict {
-  Direct = 'direct',
-  Blocked = 'blocked',
-  Whitelisted = 'whitelisted'
-}
+export const BlacklistVerdict = {
+  Direct: 'direct',
+  Blocked: 'blocked',
+  Whitelisted: 'whitelisted',
+} as const;
+export type BlacklistVerdict = (typeof BlacklistVerdict)[keyof typeof BlacklistVerdict];
 
 export class CanonicalBlacklistEngine {
   private exactBlocked = new Set<string>();
@@ -20,7 +21,11 @@ export class CanonicalBlacklistEngine {
       if (rule.startsWith('||')) {
         this.whitelistSuffixes.add(rule.slice(2).replace(/^\./, '').toLowerCase());
       } else {
-        const clean = rule.replace(/^\|/, '').replace(/^https?:\/\//, '').replace(/^\./, '').toLowerCase();
+        const clean = rule
+          .replace(/^\|/, '')
+          .replace(/^https?:\/\//, '')
+          .replace(/^\./, '')
+          .toLowerCase();
         this.whitelistExact.add(clean);
       }
       return;
@@ -32,7 +37,11 @@ export class CanonicalBlacklistEngine {
     }
 
     if (trimmed.startsWith('|')) {
-      const clean = trimmed.slice(1).replace(/^https?:\/\//, '').replace(/^\./, '').toLowerCase();
+      const clean = trimmed
+        .slice(1)
+        .replace(/^https?:\/\//, '')
+        .replace(/^\./, '')
+        .toLowerCase();
       this.exactBlocked.add(clean);
       return;
     }
@@ -46,7 +55,8 @@ export class CanonicalBlacklistEngine {
     const clean = host.trim().replace(/\.$/, '').toLowerCase();
 
     // 1. Whitelist
-    if (this.whitelistExact.has(clean)) return { verdict: BlacklistVerdict.Whitelisted, rule: clean };
+    if (this.whitelistExact.has(clean))
+      return { verdict: BlacklistVerdict.Whitelisted, rule: clean };
     for (const suf of this.whitelistSuffixes) {
       if (clean === suf || clean.endsWith(`.${suf}`)) {
         return { verdict: BlacklistVerdict.Whitelisted, rule: suf };

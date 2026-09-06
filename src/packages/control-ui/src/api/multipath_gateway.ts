@@ -22,9 +22,9 @@ export class MultipathGatewayUI {
     if (active.length === 0) return null;
     const picked = active[this.cursor % active.length];
     this.cursor++;
-    const link = this.links.get(picked);
+    const link = this.links.get(picked!)!;
     if (link) link.sentBytes += bytes;
-    return picked;
+    return picked!;
   }
 
   setActive(id: string, active: boolean): void {

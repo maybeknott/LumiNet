@@ -64,7 +64,7 @@ const checks = [
   ['peer discovery is public-address only', peerPlanner.includes('netpolicy.IsPublicAddress') && peerPlanner.includes('non-public-address')],
   ['peer discovery has bounded local CIDR deny policy without DNSBL I/O', peerPlanner.includes('MaxBlockedCIDRs = 128') && peerPlanner.includes('blocked-address') && peerPlanner.includes('local CIDR deny policy only; no DNSBL lookups')],
   ['peer discovery treats shared public addresses as evidence rather than false identity failure', peerPlanner.includes('SharedAddressObserved') && peerPlanner.includes('SharedAddressCount') && peerPlanner.includes('Multiple valid peers behind one public address can be legitimate')],
-  ['peer discovery rejects duplicate and self identities', peerPlanner.includes('\"self\"') && peerPlanner.includes('duplicate-node-id') && peerPlanner.includes('duplicate-endpoint')],
+  ['peer discovery rejects duplicate and self identities', peerPlanner.includes('"self"') && peerPlanner.includes('duplicate-node-id') && peerPlanner.includes('duplicate-endpoint')],
   ['peer discovery uses exact XOR ordering', peerPlanner.includes('xorDistance') && peerPlanner.includes('accepted[i].Distance < accepted[j].Distance')],
   ['peer trust cannot override identity/admission', peerPlanner.includes('TrustObserved') && peerPlanner.includes('TrustScore') && peerPlanner.includes('no DNSBL lookups, sockets, peer dialing, persistence, route mutation, or trust-based identity bypass')],
   ['BEP42 uses CRC32C and IPv4-bound mask', bep42.includes('crc32.Castagnoli') && bep42.includes('0x030f3fff')],

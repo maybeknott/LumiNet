@@ -26,7 +26,7 @@ export const DEFAULT_DOH_CLIENT_CONFIG: DohClientConfig = {
  */
 export function validateDohResponse(body: Uint8Array): boolean {
   if (body.length < 12) return false;
-  const flags = (body[2] << 8) | body[3];
+  const flags = (body[2]! << 8) | body[3]!;
   return (flags & 0x8000) !== 0; // QR bit must be 1
 }
 
@@ -41,30 +41,30 @@ export function findSniHostnameOffset(data: Uint8Array): [number, number] | null
   let pos = 5 + 4 + 2 + 32; // record (5) + handshake (4) + version (2) + random (32)
   if (pos >= data.length) return null;
 
-  const sessionIdLen = data[pos];
+  const sessionIdLen = data[pos]!;
   pos += 1 + sessionIdLen;
 
   if (pos + 2 > data.length) return null;
-  const cipherSuitesLen = (data[pos] << 8) | data[pos + 1];
+  const cipherSuitesLen = (data[pos]! << 8) | data[pos + 1]!;
   pos += 2 + cipherSuitesLen;
 
   if (pos + 1 > data.length) return null;
-  const compMethodsLen = data[pos];
+  const compMethodsLen = data[pos]!;
   pos += 1 + compMethodsLen;
 
   if (pos + 2 > data.length) return null;
-  const extensionsLen = (data[pos] << 8) | data[pos + 1];
+  const extensionsLen = (data[pos]! << 8) | data[pos + 1]!;
   pos += 2;
   const extensionsEnd = Math.min(pos + extensionsLen, data.length);
 
   while (pos + 4 <= extensionsEnd) {
-    const extType = (data[pos] << 8) | data[pos + 1];
-    const extLen = (data[pos + 2] << 8) | data[pos + 3];
+    const extType = (data[pos]! << 8) | data[pos + 1]!;
+    const extLen = (data[pos + 2]! << 8) | data[pos + 3]!;
     pos += 4;
 
     if (extType === 0x0000 && extLen > 0) {
       if (pos + 5 <= extensionsEnd) {
-        const hostLen = (data[pos + 3] << 8) | data[pos + 4];
+        const hostLen = (data[pos + 3]! << 8) | data[pos + 4]!;
         const hostStart = pos + 5;
         if (hostStart + hostLen <= data.length) {
           return [hostStart, hostLen];
@@ -82,13 +82,16 @@ export function findSniHostnameOffset(data: Uint8Array): [number, number] | null
  */
 export function splitClientHello(
   data: Uint8Array,
-  strategy: 'sni_split' | 'half' | 'multi' = 'sni_split'
+  strategy: 'sni_split' | 'half' | 'multi' = 'sni_split',
 ): Uint8Array[] {
   if (strategy === 'sni_split') {
     const found = findSniHostnameOffset(data);
     if (found) {
       const [offset, hostLen] = found;
-      let mid = hostLen > 0 ? offset + Math.floor(hostLen / 2) : offset + Math.floor((data.length - offset) / 2);
+      let mid =
+        hostLen > 0
+          ? offset + Math.floor(hostLen / 2)
+          : offset + Math.floor((data.length - offset) / 2);
       mid = Math.max(1, Math.min(mid, data.length - 1));
       return [data.slice(0, mid), data.slice(mid)];
     }

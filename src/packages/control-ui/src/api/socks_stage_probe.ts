@@ -7,11 +7,11 @@
  */
 
 export interface CloudflareTraceInfo {
-  colo?: string;
-  loc?: string;
-  ip?: string;
-  warp?: string;
-  visitScheme?: string;
+  colo?: string | undefined;
+  loc?: string | undefined;
+  ip?: string | undefined;
+  warp?: string | undefined;
+  visitScheme?: string | undefined;
   isWarpOk: boolean;
   rawEntries?: Record<string, string>;
 }
@@ -61,7 +61,7 @@ export function buildAttempts(
   mode: string,
   endpoint: string,
   fastFirstConnect: boolean,
-  isPsiphon: boolean
+  isPsiphon: boolean,
 ): AttemptStage[] {
   const budget = calculateValidationBudget(mode);
 
@@ -137,7 +137,7 @@ export function buildGreeting(authMethods: number[] = [0x00]): Uint8Array {
   buf[0] = SOCKS_VERSION;
   buf[1] = authMethods.length;
   for (let i = 0; i < authMethods.length; i++) {
-    buf[2 + i] = authMethods[i];
+    buf[2 + i] = authMethods[i]!;
   }
   return buf;
 }
@@ -155,7 +155,7 @@ export function verifyGreetingReply(reply: Uint8Array): number {
   if (reply[1] === 0xff) {
     throw new Error('SOCKS server rejected authentication methods');
   }
-  return reply[1];
+  return reply[1]!;
 }
 
 /**
@@ -170,10 +170,10 @@ export function buildConnectIpv4(ipBytes: number[], port: number): Uint8Array {
   buf[1] = CMD_CONNECT;
   buf[2] = 0x00; // Reserved
   buf[3] = ATYP_IPV4;
-  buf[4] = ipBytes[0];
-  buf[5] = ipBytes[1];
-  buf[6] = ipBytes[2];
-  buf[7] = ipBytes[3];
+  buf[4] = ipBytes[0]!;
+  buf[5] = ipBytes[1]!;
+  buf[6] = ipBytes[2]!;
+  buf[7] = ipBytes[3]!;
   buf[8] = (port >> 8) & 0xff;
   buf[9] = port & 0xff;
   return buf;
@@ -215,7 +215,7 @@ export function verifyConnectReply(reply: Uint8Array): void {
     throw new Error(`Invalid SOCKS version in connect reply: ${reply[0]}`);
   }
 
-  const rep = reply[1];
+  const rep = reply[1]!;
   if (rep !== 0x00) {
     const errMap: Record<number, string> = {
       0x01: 'general SOCKS server failure',

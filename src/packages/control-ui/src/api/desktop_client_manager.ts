@@ -1,9 +1,10 @@
-export enum SystemProxyMode {
-  Direct = 'direct',
-  Pac = 'pac',
-  Global = 'global',
-  Manual = 'manual',
-}
+export const SystemProxyMode = {
+  Direct: 'direct',
+  Pac: 'pac',
+  Global: 'global',
+  Manual: 'manual',
+} as const;
+export type SystemProxyMode = (typeof SystemProxyMode)[keyof typeof SystemProxyMode];
 
 export interface DesktopStatus {
   mode: SystemProxyMode;
@@ -11,7 +12,7 @@ export interface DesktopStatus {
   httpPort: number;
   socks5Port: number;
   isConnected: boolean;
-  pacUrl?: string;
+  pacUrl?: string | undefined;
 }
 
 export class DesktopClientManager {
@@ -57,12 +58,15 @@ export class DesktopClientManager {
     };
   }
 
-  handleIpcCommand(command: string, payload: Record<string, any> = {}): any {
+  handleIpcCommand(
+    command: string,
+    payload: Record<string, unknown> = {},
+  ): DesktopStatus | IpcCommandResult {
     switch (command) {
       case 'get_status':
         return this.getStatus();
       case 'set_mode': {
-        const modeStr = payload.mode;
+        const modeStr = typeof payload.mode === 'string' ? payload.mode : undefined;
         if (!modeStr) throw new Error('Missing mode');
         let mode: SystemProxyMode;
         switch (modeStr.toLowerCase()) {
@@ -81,11 +85,17 @@ export class DesktopClientManager {
           default:
             throw new Error('Invalid proxy mode');
         }
-        this.setProxyMode(mode, payload.pac_url || payload.pacUrl);
+        const pacUrl =
+          typeof payload.pac_url === 'string'
+            ? payload.pac_url
+            : typeof payload.pacUrl === 'string'
+              ? payload.pacUrl
+              : undefined;
+        this.setProxyMode(mode, pacUrl);
         return { success: true };
       }
       case 'switch_profile': {
-        const profile = payload.profile;
+        const profile = typeof payload.profile === 'string' ? payload.profile : undefined;
         if (!profile) throw new Error('Missing profile');
         this.switchProfile(profile);
         return { success: true, profile };
@@ -94,4 +104,10 @@ export class DesktopClientManager {
         throw new Error(`Unknown command: ${command}`);
     }
   }
+}
+
+/** Result envelope for commands handled through the desktop IPC bridge. */
+export interface IpcCommandResult {
+  success: boolean;
+  profile?: string;
 }

@@ -1,8 +1,9 @@
-export enum SegmentationStrategy {
-  SniBorderSplit = 'SniBorderSplit',
-  MidSniSplit = 'MidSniSplit',
-  RandomSplit = 'RandomSplit',
-}
+export const SegmentationStrategy = {
+  SniBorderSplit: 'SniBorderSplit',
+  MidSniSplit: 'MidSniSplit',
+  RandomSplit: 'RandomSplit',
+} as const;
+export type SegmentationStrategy = (typeof SegmentationStrategy)[keyof typeof SegmentationStrategy];
 
 export class SniSegmentationMasquerader {
   public strategy: SegmentationStrategy;
@@ -12,7 +13,7 @@ export class SniSegmentationMasquerader {
   constructor(
     strategy: SegmentationStrategy = SegmentationStrategy.MidSniSplit,
     minChunkSize: number = 10,
-    maxChunkSize: number = 50
+    maxChunkSize: number = 50,
   ) {
     this.strategy = strategy;
     this.minChunkSize = Math.max(2, minChunkSize);
@@ -28,33 +29,33 @@ export class SniSegmentationMasquerader {
     if (idx >= data.length) return null;
 
     // Skip session ID
-    const sessionIdLen = data[idx];
+    const sessionIdLen = data[idx]!;
     idx += 1 + sessionIdLen;
     if (idx + 2 >= data.length) return null;
 
     // Skip cipher suites
-    const cipherLen = (data[idx] << 8) | data[idx + 1];
+    const cipherLen = (data[idx]! << 8) | data[idx + 1]!;
     idx += 2 + cipherLen;
     if (idx + 1 >= data.length) return null;
 
     // Skip compression methods
-    const compLen = data[idx];
+    const compLen = data[idx]!;
     idx += 1 + compLen;
     if (idx + 2 >= data.length) return null;
 
     // Extensions length
-    const extLen = (data[idx] << 8) | data[idx + 1];
+    const extLen = (data[idx]! << 8) | data[idx + 1]!;
     idx += 2;
     const extEnd = Math.min(idx + extLen, data.length);
 
     while (idx + 4 <= extEnd) {
-      const extType = (data[idx] << 8) | data[idx + 1];
-      const extSize = (data[idx + 2] << 8) | data[idx + 3];
+      const extType = (data[idx]! << 8) | data[idx + 1]!;
+      const extSize = (data[idx + 2]! << 8) | data[idx + 3]!;
       idx += 4;
 
       if (extType === 0) {
         if (idx + extSize <= extEnd && extSize >= 5) {
-          const sniNameLen = (data[idx + 3] << 8) | data[idx + 4];
+          const sniNameLen = (data[idx + 3]! << 8) | data[idx + 4]!;
           const sniStart = idx + 5;
           const sniEnd = sniStart + sniNameLen;
           if (sniEnd <= idx + extSize && sniEnd <= data.length) {

@@ -8,11 +8,11 @@ Curated configuration/preset data exposed through product adapters.
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (2): `presets.go`, `presets_test.go`
+- Direct files (4): `presets.go`, `presets_test.go`, `updater.go`, `updater_test.go`
 
 ## Interfaces and dependencies
 - Go package: `presets`.
-- Notable exported surface: `CDNPreset`, `DNSPreset`, `DoHPreset`, `EvasionISPPreset`, `GetCDNPresets`, `GetDNSPresets`, `GetDoHPresets`, `GetEvasionISPPresets`, `GetScanPresets`, `GetServerlessRoutingPresets` …
+- Notable exported surface: `CDNPreset`, `CountryListURL`, `DNSPreset`, `DoHPreset`, `EvasionISPPreset`, `GetCDNPresets`, `GetDNSPresets`, `GetDoHPresets`, `GetEvasionISPPresets`, `GetScanPresets` …
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/adapters/api`.
 

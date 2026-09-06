@@ -442,7 +442,12 @@ for dead in (
         error(f"stale frontend artifact remains: {dead}")
 
 if frontend_src.is_dir():
-    explicit_any = re.compile(r"(?<![A-Za-z0-9_])any(?![A-Za-z0-9_])")
+    # Only type-position `any` is an explicit-any violation; the bare word in
+    # comments, prose, or string literals is not a type.
+    explicit_any = re.compile(
+        r"(?:\bas any\b|\b:\s*any\b|\b<\s*any\s*(?=[>,]|$)|\bany\s*\[\s*\]|"
+        r"\bArray\s*<\s*any\s*>|\b(?:Record|Promise|Partial|Pick|Omit|Readonly|ReturnType|Awaited)\s*<[^>]*\bany\b)"
+    )
     for source in sorted(frontend_src.rglob("*")):
         if source.suffix not in {".ts", ".tsx"}:
             continue

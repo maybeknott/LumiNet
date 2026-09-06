@@ -75,7 +75,7 @@ export interface ProbeMetrics {
 export interface ScoreResult {
   numeric: number;
   grade: string;
-  classification: "Blocked" | "Unstable" | "Partially Usable" | "Tunnel Ready" | "False Positive";
+  classification: 'Blocked' | 'Unstable' | 'Partially Usable' | 'Tunnel Ready' | 'False Positive';
   confidence: number;
   falsePositive: boolean;
   reasons: string[];
@@ -84,7 +84,7 @@ export interface ScoreResult {
 export function computeProbeMetrics(
   tcp: TcpProbeResult,
   udp: UdpProbeResult,
-  dns: DnsProbeResult
+  dns: DnsProbeResult,
 ): ProbeMetrics {
   const attempts: AttemptMetric[] = [
     ...(tcp.attempts || []),
@@ -99,7 +99,7 @@ export function computeProbeMetrics(
     if (a.success) {
       successfulDurations.push(a.durationMs);
     }
-    if (a.errorCategory && a.errorCategory.toLowerCase() === "timeout") {
+    if (a.errorCategory && a.errorCategory.toLowerCase() === 'timeout') {
       timeouts++;
     }
   }
@@ -115,15 +115,11 @@ export function computeProbeMetrics(
   }
 
   const rtt =
-    tcp.medianRttMs && tcp.medianRttMs > 0
-      ? tcp.medianRttMs
-      : medianLatency(successfulDurations);
+    tcp.medianRttMs && tcp.medianRttMs > 0 ? tcp.medianRttMs : medianLatency(successfulDurations);
 
   const totalAttempts = attempts.length;
   const successRatio =
-    totalAttempts > 0
-      ? attempts.filter((a) => a.success).length / totalAttempts
-      : 0;
+    totalAttempts > 0 ? attempts.filter((a) => a.success).length / totalAttempts : 0;
 
   const loss = 1 - successRatio;
   const timeoutFreq = totalAttempts > 0 ? timeouts / totalAttempts : 0;
@@ -155,39 +151,39 @@ export function scoreProbeResult(
   ws: WsProbeResult,
   quic: QuicProbeResult,
   dns: DnsProbeResult,
-  metrics: ProbeMetrics
+  metrics: ProbeMetrics,
 ): ScoreResult {
   let points = 0;
   const reasons: string[] = [];
 
   if (tcp.success) {
     points += 25;
-    reasons.push("tcp_connectivity");
+    reasons.push('tcp_connectivity');
   }
   const consistency = tcp.consistency ?? 0;
   if (consistency >= 0.67) {
     points += 15;
-    reasons.push("retry_consistency");
+    reasons.push('retry_consistency');
   }
   if (tls.success) {
     points += 20;
-    reasons.push("tls_handshake");
+    reasons.push('tls_handshake');
   }
   if (http.success) {
     points += 8;
-    reasons.push("http_behavior");
+    reasons.push('http_behavior');
   }
   if (ws.success) {
     points += 10;
-    reasons.push("websocket_upgrade");
+    reasons.push('websocket_upgrade');
   }
   if (quic.success) {
     points += 8;
-    reasons.push("quic_handshake");
+    reasons.push('quic_handshake');
   }
   if (dns.udpResponsive || dns.tcpResponsive) {
     points += 6;
-    reasons.push("dns_responsive");
+    reasons.push('dns_responsive');
   }
 
   if (metrics.rttMs > 0 && metrics.rttMs < 150) {
@@ -216,31 +212,19 @@ export function scoreProbeResult(
     falsePositive = true;
   }
 
-  let classification: ScoreResult["classification"] = "Blocked";
+  let classification: ScoreResult['classification'] = 'Blocked';
   if (falsePositive) {
-    classification = "False Positive";
-  } else if (
-    points >= 82 &&
-    consistency >= 0.67 &&
-    (tls.success || ws.success || quic.success)
-  ) {
-    classification = "Tunnel Ready";
+    classification = 'False Positive';
+  } else if (points >= 82 && consistency >= 0.67 && (tls.success || ws.success || quic.success)) {
+    classification = 'Tunnel Ready';
   } else if (points >= 58) {
-    classification = "Partially Usable";
+    classification = 'Partially Usable';
   } else if (points >= 38) {
-    classification = "Unstable";
+    classification = 'Unstable';
   }
 
   const grade = calculateGrade(points);
-  const conf = calculateConfidence(
-    tcp,
-    tls,
-    http,
-    ws,
-    quic,
-    metrics,
-    falsePositive
-  );
+  const conf = calculateConfidence(tcp, tls, http, ws, quic, metrics, falsePositive);
 
   return {
     numeric: points,
@@ -252,20 +236,21 @@ export function scoreProbeResult(
   };
 }
 
-export function parseCloudflareTrace(
-  raw: string
-): { ip: string | null; countryCode: string | null } {
+export function parseCloudflareTrace(raw: string): {
+  ip: string | null;
+  countryCode: string | null;
+} {
   let ip: string | null = null;
   let countryCode: string | null = null;
-  for (const line of raw.split("\n")) {
+  for (const line of raw.split('\n')) {
     const trimmed = line.trim();
-    const idx = trimmed.indexOf("=");
+    const idx = trimmed.indexOf('=');
     if (idx !== -1) {
       const key = trimmed.slice(0, idx).trim();
       const val = trimmed.slice(idx + 1).trim();
-      if (key === "ip" && val.length > 0) {
+      if (key === 'ip' && val.length > 0) {
         ip = val;
-      } else if (key === "loc" && val.length > 0) {
+      } else if (key === 'loc' && val.length > 0) {
         countryCode = val.toUpperCase();
       }
     }
@@ -274,12 +259,12 @@ export function parseCloudflareTrace(
 }
 
 function calculateGrade(points: number): string {
-  if (points >= 94) return "A+";
-  if (points >= 85) return "A";
-  if (points >= 72) return "B";
-  if (points >= 58) return "C";
-  if (points >= 38) return "D";
-  return "F";
+  if (points >= 94) return 'A+';
+  if (points >= 85) return 'A';
+  if (points >= 72) return 'B';
+  if (points >= 58) return 'C';
+  if (points >= 38) return 'D';
+  return 'F';
 }
 
 function calculateConfidence(
@@ -289,7 +274,7 @@ function calculateConfidence(
   ws: WsProbeResult,
   quic: QuicProbeResult,
   metrics: ProbeMetrics,
-  falsePositive: boolean
+  falsePositive: boolean,
 ): number {
   let c = (tcp.consistency ?? 0) * 45;
   if (tls.success) c += 20;
@@ -304,7 +289,7 @@ function calculateConfidence(
 function medianLatency(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)];
+  return sorted[Math.floor(sorted.length / 2)]!;
 }
 
 function roundTwoDec(v: number): number {

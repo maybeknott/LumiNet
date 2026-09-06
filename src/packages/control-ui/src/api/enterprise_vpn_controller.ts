@@ -1,8 +1,9 @@
-export enum EnterpriseUserRole {
-  StandardUser = 'STANDARD_USER',
-  Admin = 'ADMIN',
-  Auditor = 'AUDITOR',
-}
+export const EnterpriseUserRole = {
+  StandardUser: 'STANDARD_USER',
+  Admin: 'ADMIN',
+  Auditor: 'AUDITOR',
+} as const;
+export type EnterpriseUserRole = (typeof EnterpriseUserRole)[keyof typeof EnterpriseUserRole];
 
 export interface EnterpriseTenant {
   orgId: string;
@@ -60,8 +61,8 @@ export class EnterpriseVpnController {
       if (route === '0.0.0.0/0') return true;
       if (route.includes('/')) {
         const [netStr, prefixStr] = route.split('/');
-        const prefix = parseInt(prefixStr, 10);
-        if (this.matchesCidr(destinationIp, netStr, prefix)) {
+        const prefix = parseInt(prefixStr!, 10);
+        if (this.matchesCidr(destinationIp, netStr!, prefix)) {
           return true;
         }
       } else if (route === destinationIp) {

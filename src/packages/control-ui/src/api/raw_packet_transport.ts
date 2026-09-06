@@ -195,7 +195,7 @@ export function encodeRawPacketMessage(msg: RawPacketMessage): Uint8Array {
       body = new Uint8Array(1 + msg.flags.length * 2);
       body[0] = msg.flags.length;
       for (let i = 0; i < msg.flags.length; i++) {
-        const val = encodeRawTcpFlags(msg.flags[i]);
+        const val = encodeRawTcpFlags(msg.flags[i]!);
         body[1 + i * 2] = (val >> 8) & 0xff;
         body[1 + i * 2 + 1] = val & 0xff;
       }
@@ -222,19 +222,22 @@ export function encodeRawPacketMessage(msg: RawPacketMessage): Uint8Array {
 /**
  * Deserializes RawPacketMessage from wire bytes.
  */
-export function decodeRawPacketMessage(buf: Uint8Array): { msg: RawPacketMessage; totalLen: number } {
+export function decodeRawPacketMessage(buf: Uint8Array): {
+  msg: RawPacketMessage;
+  totalLen: number;
+} {
   if (buf.length < HEADER_LEN) {
     throw new Error(`Buffer too short: ${buf.length} < ${HEADER_LEN}`);
   }
   if (buf[0] !== RAW_PACKET_MAGIC) {
-    throw new Error(`Bad magic byte: 0x${buf[0].toString(16)}`);
+    throw new Error(`Bad magic byte: 0x${buf[0]!.toString(16)}`);
   }
   if (buf[1] !== RAW_PACKET_VERSION) {
-    throw new Error(`Unsupported version: 0x${buf[1].toString(16)}`);
+    throw new Error(`Unsupported version: 0x${buf[1]!.toString(16)}`);
   }
 
-  const msgType = buf[2];
-  const bodyLen = (buf[3] << 8) | buf[4];
+  const msgType = buf[2]!;
+  const bodyLen = (buf[3]! << 8) | buf[4]!;
   const totalLen = HEADER_LEN + bodyLen;
   if (buf.length < totalLen) {
     throw new Error('Buffer too short for complete message');
@@ -252,13 +255,13 @@ export function decodeRawPacketMessage(buf: Uint8Array): { msg: RawPacketMessage
       if (body.length < 3) {
         throw new Error('Truncated address body');
       }
-      const hostLen = body[0];
+      const hostLen = body[0]!;
       if (hostLen > MAX_HOST_LEN || 1 + hostLen + 2 !== body.length) {
         throw new Error(`Invalid host length: ${hostLen}`);
       }
       const decoder = new TextDecoder();
       const host = decoder.decode(body.subarray(1, 1 + hostLen));
-      const port = (body[1 + hostLen] << 8) | body[1 + hostLen + 1];
+      const port = (body[1 + hostLen]! << 8) | body[1 + hostLen + 1]!;
       const target: TargetEndpoint = { host, port };
       return {
         msg: msgType === MSG_TCP ? { type: 'tcp', target } : { type: 'udp', target },
@@ -269,13 +272,13 @@ export function decodeRawPacketMessage(buf: Uint8Array): { msg: RawPacketMessage
       if (body.length < 1) {
         throw new Error('Truncated TCPF body');
       }
-      const count = body[0];
+      const count = body[0]!;
       if (count > MAX_TCPF_COUNT || 1 + count * 2 !== body.length) {
         throw new Error(`Invalid TCPF count: ${count}`);
       }
       const flags: RawTcpFlags[] = [];
       for (let i = 0; i < count; i++) {
-        const val = (body[1 + i * 2] << 8) | body[1 + i * 2 + 1];
+        const val = (body[1 + i * 2]! << 8) | body[1 + i * 2 + 1]!;
         flags.push(decodeRawTcpFlags(val));
       }
       return { msg: { type: 'tcpf', flags }, totalLen };
@@ -292,17 +295,17 @@ export function computeInternetChecksum(data: Uint8Array): number {
   let sum = 0;
   let i = 0;
   while (i + 1 < data.length) {
-    const word = (data[i] << 8) | data[i + 1];
+    const word = (data[i]! << 8) | data[i + 1]!;
     sum += word;
     i += 2;
   }
   if (i < data.length) {
-    sum += data[i] << 8;
+    sum += data[i]! << 8;
   }
-  while ((sum >> 16) > 0) {
+  while (sum >> 16 > 0) {
     sum = (sum & 0xffff) + (sum >> 16);
   }
-  return (~sum) & 0xffff;
+  return ~sum & 0xffff;
 }
 
 export interface KcpTransportProfile {

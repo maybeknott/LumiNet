@@ -7,12 +7,24 @@ export interface DnsCandidateRecord {
 
 export class SubnetDnsScanner {
   private readonly servers = new Map<string, DnsCandidateRecord>();
+  private readonly expectedIp;
+  constructor(expectedIp = '93.184.216.34') {
+    this.expectedIp = expectedIp;
+  }
 
-  constructor(private readonly expectedIp = '93.184.216.34') {}
-
-  public recordProbe(ip: string, latencyMs: number, resolvedIp: string | null, hasError: boolean): void {
+  public recordProbe(
+    ip: string,
+    latencyMs: number,
+    resolvedIp: string | null,
+    hasError: boolean,
+  ): void {
     if (hasError || resolvedIp === null) {
-      this.servers.set(ip, { ip, latencyMs: 0, isResponsive: false, isPoisoned: false });
+      this.servers.set(ip, {
+        ip,
+        latencyMs: 0,
+        isResponsive: false,
+        isPoisoned: false,
+      });
       return;
     }
     const isPoisoned = resolvedIp !== this.expectedIp;
@@ -20,8 +32,8 @@ export class SubnetDnsScanner {
   }
 
   public selectCleanFastest(): DnsCandidateRecord | null {
-    const clean = Array.from(this.servers.values()).filter(s => s.isResponsive && !s.isPoisoned);
+    const clean = Array.from(this.servers.values()).filter((s) => s.isResponsive && !s.isPoisoned);
     if (clean.length === 0) return null;
-    return clean.reduce((best, cur) => cur.latencyMs < best.latencyMs ? cur : best);
+    return clean.reduce((best, cur) => (cur.latencyMs < best.latencyMs ? cur : best));
   }
 }

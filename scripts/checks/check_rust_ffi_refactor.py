@@ -108,9 +108,10 @@ def main() -> int:
     if "read_c_string_owned(endpoint)" not in async_exports or "parse_json_input(input_json)" not in async_exports:
         errors.append("async legacy entry point does not copy/validate raw inputs before dispatch")
 
+    unsafe_legacy_exports = len(re.findall(r'pub unsafe extern "C" fn', exports))
     print(
         f"rust-ffi-refactor abi_exports={len(after)} "
-        f"unsafe_legacy_exports={len(re.findall(r'pub unsafe extern \"C\" fn', exports))} "
+        f"unsafe_legacy_exports={unsafe_legacy_exports} "
         f"errors={len(errors)}"
     )
     for error in errors:

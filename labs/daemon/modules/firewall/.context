@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/runtime/firewall
+
+## Purpose
+Daemon firewall implementation module.
+
+## Architectural role
+- Daemon dependency band: `runtime` (rank 4; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (14): `engine.go`, `engine_test.go`, `gateway_updater.go`, `gateway_updater_test.go`, `hotspot_repeater.go`, `hotspot_repeater_test.go`, `killswitch_rules.go`, `killswitch_rules_test.go`, `routeros_exporter.go`, `routeros_exporter_test.go`, `ssl_vpn_adapter.go`, `ssl_vpn_adapter_test.go` …
+
+## Interfaces and dependencies
+- Go package: `firewall`.
+- Notable exported surface: `Action`, `Decision`, `DefaultHotspotRepeaterConfig`, `DynamicGatewayUpdater`, `Engine`, `Event`, `GatewayRoute`, `HotspotNatRepeater`, `HotspotRepeaterConfig`, `KillswitchRules` …
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- `runtime` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

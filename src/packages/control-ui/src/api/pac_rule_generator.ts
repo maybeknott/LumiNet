@@ -1,7 +1,8 @@
-export enum PacRuleAction {
-  Direct = 'DIRECT',
-  Proxy = 'PROXY',
-}
+export const PacRuleAction = {
+  Direct: 'DIRECT',
+  Proxy: 'PROXY',
+} as const;
+export type PacRuleAction = (typeof PacRuleAction)[keyof typeof PacRuleAction];
 
 export interface PacRuleEntry {
   pattern: string;
@@ -13,11 +14,12 @@ export interface PacRuleEntry {
 
 export class PacRuleGenerator {
   private rules: PacRuleEntry[] = [];
-
-  constructor(
-    public defaultAction: PacRuleAction = PacRuleAction.Direct,
-    public defaultProxy: string = ''
-  ) {}
+  public defaultAction: PacRuleAction;
+  public defaultProxy: string;
+  constructor(defaultAction: PacRuleAction = PacRuleAction.Direct, defaultProxy: string = '') {
+    this.defaultAction = defaultAction;
+    this.defaultProxy = defaultProxy;
+  }
 
   addRule(pattern: string, action: PacRuleAction, proxyEndpoint: string): void {
     const trimmed = pattern.trim().toLowerCase();
@@ -56,21 +58,22 @@ export class PacRuleGenerator {
     const rulesJs = this.rules
       .filter((r) => r.action === PacRuleAction.Proxy)
       .map((r) => `  "${r.pattern}": "PROXY ${r.proxyEndpoint}",`);
-    const defRet = this.defaultAction === PacRuleAction.Proxy ? `"PROXY ${this.defaultProxy}"` : '"DIRECT"';
+    const defRet =
+      this.defaultAction === PacRuleAction.Proxy ? `"PROXY ${this.defaultProxy}"` : '"DIRECT"';
 
     return `// LumiNet Generated PAC
-var rules = {
-${rulesJs.join('\n')}
-};
+    var rules = {
+    ${rulesJs.join('\n')}
+    };
 
-function FindProxyForURL(url, host) {
+    function FindProxyForURL(url, host) {
     for (var d in rules) {
         if (dnsDomainIs(host, d) || host === d) {
             return rules[d];
         }
     }
     return ${defRet};
-}
-`;
+    }
+    `;
   }
 }

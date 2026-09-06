@@ -1,6 +1,7 @@
 import { BlockCategory, DnsBlocklistEngine } from './dns_blocklist.js';
 import { BlacklistVerdict, CanonicalBlacklistEngine } from './canonical_blacklist.js';
-import { GeoPoint, GeospatialPolygonRouter } from './geospatial_router.js';
+import { GeospatialPolygonRouter } from './geospatial_router.js';
+import type { GeoPoint } from './geospatial_router.js';
 import { FlowAnalyzerEngine } from './flow_analyzer.js';
 
 export type FilterVerdict =
@@ -14,8 +15,9 @@ export class IntelligentTrafficFilter {
   public geoRouter: GeospatialPolygonRouter;
   public flowAnalyzer = new FlowAnalyzerEngine();
   public totalEvaluated = 0;
-
-  constructor(public defaultEgress: string) {
+  public defaultEgress: string;
+  constructor(defaultEgress: string) {
+    this.defaultEgress = defaultEgress;
     this.geoRouter = new GeospatialPolygonRouter(defaultEgress);
   }
 
@@ -24,7 +26,7 @@ export class IntelligentTrafficFilter {
     dst: string,
     domain?: string,
     userLocation?: GeoPoint,
-    initialPayload: Uint8Array = new Uint8Array(0)
+    initialPayload: Uint8Array = new Uint8Array(0),
   ): FilterVerdict {
     this.totalEvaluated++;
 
@@ -51,14 +53,14 @@ export class IntelligentTrafficFilter {
         return {
           type: 'proxy_required',
           ruleHit: res.rule,
-          egressTag: 'tunnel-proxy'
+          egressTag: 'tunnel-proxy',
         };
       }
     }
 
     return {
       type: 'direct_pass_through',
-      egressTag: spatialEgress
+      egressTag: spatialEgress,
     };
   }
 }

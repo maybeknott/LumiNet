@@ -1,8 +1,10 @@
 import { SubscriptionNodeExtractor } from './subscription_node_extractor.js';
-import { NodeIngestDeduplicator, ScrapedNodeInfo } from './node_ingest_deduplicator.js';
+import { NodeIngestDeduplicator } from './node_ingest_deduplicator.js';
+import type { ScrapedNodeInfo } from './node_ingest_deduplicator.js';
 import { EnhancedGeoIpLookup } from './enhanced_geoip_lookup.js';
-import { CompositeRuleCompiler, ControlRuleAction } from './composite_rule_compiler.js';
-import { PolicyRulesetRouter, PolicyVerdict } from './policy_ruleset_router.js';
+import { CompositeRuleCompiler } from './composite_rule_compiler.js';
+import { PolicyRulesetRouter } from './policy_ruleset_router.js';
+import type { PolicyVerdict } from './policy_ruleset_router.js';
 
 export class AutonomousIngestPipeline {
   public deduplicator = new NodeIngestDeduplicator();

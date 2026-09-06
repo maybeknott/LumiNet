@@ -1,11 +1,12 @@
-export enum EngineState {
-  Stopped = 'Stopped',
-  Starting = 'Starting',
-  Running = 'Running',
-  Degraded = 'Degraded',
-  Stopping = 'Stopping',
-  Error = 'Error',
-}
+export const EngineState = {
+  Stopped: 'Stopped',
+  Starting: 'Starting',
+  Running: 'Running',
+  Degraded: 'Degraded',
+  Stopping: 'Stopping',
+  Error: 'Error',
+} as const;
+export type EngineState = (typeof EngineState)[keyof typeof EngineState];
 
 export interface EngineMetrics {
   uptimeSecs: number;
@@ -34,8 +35,10 @@ export class MobileEngineProvider {
     lastHeartbeat: 0,
   };
   private startTimestamp: number = 0;
-
-  constructor(public config: EngineConfig) {}
+  public config: EngineConfig;
+  constructor(config: EngineConfig) {
+    this.config = config;
+  }
 
   startEngine(timestamp: number): void {
     if (this.state === EngineState.Running) {

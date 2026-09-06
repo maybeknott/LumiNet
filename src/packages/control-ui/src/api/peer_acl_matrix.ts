@@ -1,7 +1,9 @@
 export class PeerAclMatrix {
   private readonly acl = new Map<string, Map<string, boolean>>();
-
-  constructor(private readonly defaultAllow: boolean = true) {}
+  private readonly defaultAllow: boolean;
+  constructor(defaultAllow: boolean = true) {
+    this.defaultAllow = defaultAllow;
+  }
 
   public setRule(source: string, target: string, allowed: boolean): void {
     let row = this.acl.get(source);

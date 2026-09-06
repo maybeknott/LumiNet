@@ -1,0 +1,21 @@
+# src/apps/daemon/internal/networking/dns/blocklist_packs
+
+## Purpose
+DNS resolution, DoH, DNS tunneling/support, preflight checks, and stateless smart fallback resolution.
+
+## Architectural role
+- Daemon dependency band: `networking` (rank 2; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (1): `doh_bypass.txt`
+
+## Interfaces and dependencies
+- See direct files and parent context for the interface consumed by sibling/parent modules.
+
+## Invariants
+- `networking` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

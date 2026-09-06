@@ -31,20 +31,29 @@ export interface AdapterDnsConfig {
  * Client-side detection of Iranian censorship redirect pages (10.10.34.0/24),
  * private addresses, loopback, or invalid address spaces returned by hostile DNS filtering.
  */
-export function checkPoisonedIPv4(ipStr: string): { isPoisoned: boolean; reason?: string } {
-  const parts = ipStr.split('.').map(p => parseInt(p, 10));
-  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
+export function checkPoisonedIPv4(ipStr: string): {
+  isPoisoned: boolean;
+  reason?: string;
+} {
+  const parts = ipStr.split('.').map((p) => parseInt(p, 10));
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
     return { isPoisoned: true, reason: 'Invalid IPv4 address format' };
   }
 
   // Iranian national filtering redirect page: 10.10.34.0/24
   if (parts[0] === 10 && parts[1] === 10 && parts[2] === 34) {
-    return { isPoisoned: true, reason: 'Iranian Censorship Redirect Page (10.10.34.0/24)' };
+    return {
+      isPoisoned: true,
+      reason: 'Iranian Censorship Redirect Page (10.10.34.0/24)',
+    };
   }
 
   // RFC 1918 Class A: 10.0.0.0/8
   if (parts[0] === 10) {
-    return { isPoisoned: true, reason: 'Bogus Private RFC 1918 Class A (10.0.0.0/8)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Private RFC 1918 Class A (10.0.0.0/8)',
+    };
   }
 
   // Loopback: 127.0.0.0/8
@@ -54,40 +63,61 @@ export function checkPoisonedIPv4(ipStr: string): { isPoisoned: boolean; reason?
 
   // Unspecified: 0.0.0.0/8
   if (parts[0] === 0) {
-    return { isPoisoned: true, reason: 'Bogus Unspecified Address (0.0.0.0/8)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Unspecified Address (0.0.0.0/8)',
+    };
   }
 
   // RFC 1918 Class C: 192.168.0.0/16
   if (parts[0] === 192 && parts[1] === 168) {
-    return { isPoisoned: true, reason: 'Bogus Private RFC 1918 Class C (192.168.0.0/16)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Private RFC 1918 Class C (192.168.0.0/16)',
+    };
   }
 
   // RFC 1918 Class B: 172.16.0.0 - 172.31.255.255
-  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) {
-    return { isPoisoned: true, reason: 'Bogus Private RFC 1918 Class B (172.16.0.0/12)' };
+  if (parts[0]! === 172 && parts[1]! >= 16 && parts[1]! <= 31) {
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Private RFC 1918 Class B (172.16.0.0/12)',
+    };
   }
 
   // CGNAT: 100.64.0.0/10
-  if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) {
+  if (parts[0]! === 100 && parts[1]! >= 64 && parts[1]! <= 127) {
     return { isPoisoned: true, reason: 'Bogus CGNAT RFC 6598 (100.64.0.0/10)' };
   }
 
   // Link-local: 169.254.0.0/16
   if (parts[0] === 169 && parts[1] === 254) {
-    return { isPoisoned: true, reason: 'Bogus Link-Local RFC 3927 (169.254.0.0/16)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Link-Local RFC 3927 (169.254.0.0/16)',
+    };
   }
 
   // Benchmarking: 198.18.0.0/15
   if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) {
-    return { isPoisoned: true, reason: 'Bogus Benchmarking RFC 2544 (198.18.0.0/15)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Benchmarking RFC 2544 (198.18.0.0/15)',
+    };
   }
 
   // Broadcast & Multicast
   if (parts[0] === 255 && parts[1] === 255 && parts[2] === 255 && parts[3] === 255) {
-    return { isPoisoned: true, reason: 'Bogus Broadcast Address (255.255.255.255)' };
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Broadcast Address (255.255.255.255)',
+    };
   }
-  if (parts[0] >= 224 && parts[0] <= 239) {
-    return { isPoisoned: true, reason: 'Bogus Multicast Address (224.0.0.0/4)' };
+  if (parts[0]! >= 224 && parts[0]! <= 239) {
+    return {
+      isPoisoned: true,
+      reason: 'Bogus Multicast Address (224.0.0.0/4)',
+    };
   }
 
   return { isPoisoned: false };
@@ -126,7 +156,10 @@ export async function setAdapterDns(adapterAlias: string, dnsServers: string[]):
   const resp = await fetch('/api/v1/dns/system-adapter', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ adapter_alias: adapterAlias, dns_servers: dnsServers }),
+    body: JSON.stringify({
+      adapter_alias: adapterAlias,
+      dns_servers: dnsServers,
+    }),
   });
   return resp.ok;
 }

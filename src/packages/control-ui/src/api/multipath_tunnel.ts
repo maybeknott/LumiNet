@@ -1,15 +1,16 @@
-export enum BondingMode {
-  RoundRobin = 'round_robin',
-  LowestLatency = 'lowest_latency',
-  WeightedLoss = 'weighted_loss'
-}
-
-export enum PathState {
-  Active = 'active',
-  Standby = 'standby',
-  Degraded = 'degraded',
-  Down = 'down'
-}
+export const BondingMode = {
+  RoundRobin: 'round_robin',
+  LowestLatency: 'lowest_latency',
+  WeightedLoss: 'weighted_loss',
+} as const;
+export type BondingMode = (typeof BondingMode)[keyof typeof BondingMode];
+export const PathState = {
+  Active: 'active',
+  Standby: 'standby',
+  Degraded: 'degraded',
+  Down: 'down',
+} as const;
+export type PathState = (typeof PathState)[keyof typeof PathState];
 
 export interface PathMetrics {
   pathId: number;
@@ -26,8 +27,12 @@ export interface PathMetrics {
 export class MultipathTunnelManager {
   private paths: Map<number, PathMetrics> = new Map();
   private rrCounter = 0;
-
-  constructor(public tunnelId: string, public mode: BondingMode) {}
+  public tunnelId: string;
+  public mode: BondingMode;
+  constructor(tunnelId: string, mode: BondingMode) {
+    this.tunnelId = tunnelId;
+    this.mode = mode;
+  }
 
   addPath(path: PathMetrics): void {
     this.paths.set(path.pathId, path);
@@ -49,12 +54,12 @@ export class MultipathTunnelManager {
 
     switch (this.mode) {
       case BondingMode.RoundRobin: {
-        const chosen = active[this.rrCounter % active.length];
+        const chosen = active[this.rrCounter % active.length]!;
         this.rrCounter++;
         return chosen;
       }
       case BondingMode.LowestLatency: {
-        let best = active[0];
+        let best = active[0]!;
         let minRtt = Infinity;
         for (const id of active) {
           const p = this.paths.get(id)!;
@@ -66,7 +71,7 @@ export class MultipathTunnelManager {
         return best;
       }
       default:
-        return active[0];
+        return active[0]!;
     }
   }
 
@@ -96,7 +101,7 @@ export class MultipathTunnelManager {
 
     return {
       pathId,
-      payload: frame.slice(7, 7 + len)
+      payload: frame.slice(7, 7 + len),
     };
   }
 }

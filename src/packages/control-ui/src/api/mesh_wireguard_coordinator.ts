@@ -32,21 +32,27 @@ export class MeshWireguardCoordinator {
     this.peers.set(peer.peerId, peer);
   }
 
-  public selectBestEndpoint(peerId: string, nowMs: number): { mode: MeshConnectionMode; endpoint: string } | null {
+  public selectBestEndpoint(
+    peerId: string,
+    nowMs: number,
+  ): { mode: MeshConnectionMode; endpoint: string } | null {
     const peer = this.peers.get(peerId);
     if (!peer) return null;
 
     const isRecent = nowMs - peer.lastHandshakeMs < 180_000;
     if (isRecent && peer.endpoints.length > 0) {
-      return { mode: 'direct', endpoint: peer.endpoints[0] };
+      return { mode: 'direct', endpoint: peer.endpoints[0]! };
     }
 
     if (this.derpRelays.has(peer.derpRegionId)) {
-      return { mode: 'derp_relay', endpoint: this.derpRelays.get(peer.derpRegionId)! };
+      return {
+        mode: 'derp_relay',
+        endpoint: this.derpRelays.get(peer.derpRegionId)!,
+      };
     }
 
     if (peer.endpoints.length > 0) {
-      return { mode: 'direct', endpoint: peer.endpoints[0] };
+      return { mode: 'direct', endpoint: peer.endpoints[0]! };
     }
 
     return null;
@@ -70,12 +76,9 @@ export class MeshWireguardCoordinator {
     const peer = this.peers.get(peerId);
     if (!peer) throw new Error(`Peer not found: ${peerId}`);
 
-    const allowed = peer.allowedIps.length > 0 ? peer.allowedIps.join(', ') : `${peer.virtualIp}/32`;
-    const lines = [
-      '[Peer]',
-      `PublicKey = ${peer.publicKeyHex}`,
-      `AllowedIPs = ${allowed}`
-    ];
+    const allowed =
+      peer.allowedIps.length > 0 ? peer.allowedIps.join(', ') : `${peer.virtualIp}/32`;
+    const lines = ['[Peer]', `PublicKey = ${peer.publicKeyHex}`, `AllowedIPs = ${allowed}`];
     if (peer.endpoints.length > 0) {
       lines.push(`Endpoint = ${peer.endpoints[0]}`);
       lines.push('PersistentKeepalive = 25');

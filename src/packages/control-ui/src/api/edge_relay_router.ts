@@ -66,19 +66,22 @@ export class EdgeRelayRouter {
   constructor(
     relayHosts: string[] = DEFAULT_RELAY_HOSTS,
     relayPort: number = 6666,
-    cloudflareCidrs: string[] = [...CANONICAL_CF_IPV4, ...CANONICAL_CF_IPV6]
+    cloudflareCidrs: string[] = [...CANONICAL_CF_IPV4, ...CANONICAL_CF_IPV6],
   ) {
     this.relayHosts = [...relayHosts];
     this.relayPort = relayPort;
     this.cloudflareCidrs = [...cloudflareCidrs];
   }
 
-  public selectRelayEndpoint(sessionId?: number): { host: string; port: number } {
+  public selectRelayEndpoint(sessionId?: number): {
+    host: string;
+    port: number;
+  } {
     if (this.relayHosts.length === 0) {
       return { host: '127.0.0.1', port: this.relayPort };
     }
     const idx = sessionId !== undefined ? Math.abs(sessionId) % this.relayHosts.length : 0;
-    return { host: this.relayHosts[idx], port: this.relayPort };
+    return { host: this.relayHosts[idx]!, port: this.relayPort };
   }
 
   public isCloudflareIp(ip?: string): boolean {
@@ -139,14 +142,23 @@ export class EdgeRelayRouter {
 
     const query = new Uint8Array(12 + labels.length + 4);
     // Header
-    query.set([
-      0x12, 0x34, // Transaction ID
-      0x01, 0x00, // Standard query
-      0x00, 0x01, // Questions: 1
-      0x00, 0x00, // Answers: 0
-      0x00, 0x00, // Authority: 0
-      0x00, 0x00, // Additional: 0
-    ], 0);
+    query.set(
+      [
+        0x12,
+        0x34, // Transaction ID
+        0x01,
+        0x00, // Standard query
+        0x00,
+        0x01, // Questions: 1
+        0x00,
+        0x00, // Answers: 0
+        0x00,
+        0x00, // Authority: 0
+        0x00,
+        0x00, // Additional: 0
+      ],
+      0,
+    );
 
     // QNAME
     query.set(labels, 12);

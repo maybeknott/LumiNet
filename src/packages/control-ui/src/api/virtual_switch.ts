@@ -1,5 +1,5 @@
 export interface SwitchPacketFrame {
-  sourceHex: string;      // 5 bytes (10 hex chars)
+  sourceHex: string; // 5 bytes (10 hex chars)
   destinationHex: string; // 5 bytes
   etherType: number;
   payload: Uint8Array;
@@ -7,8 +7,10 @@ export interface SwitchPacketFrame {
 
 export class VirtualEthernetSwitch {
   private readonly fdb = new Map<string, { endpoint: string; lastSeenMs: number }>();
-
-  constructor(private readonly agingDurationMs: number = 60_000) {}
+  private readonly agingDurationMs: number;
+  constructor(agingDurationMs: number = 60000) {
+    this.agingDurationMs = agingDurationMs;
+  }
 
   public learn(nodeIdHex: string, endpoint: string, nowMs = Date.now()): void {
     this.fdb.set(nodeIdHex, { endpoint, lastSeenMs: nowMs });

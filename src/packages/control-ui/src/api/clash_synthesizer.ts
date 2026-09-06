@@ -15,8 +15,10 @@ export interface ClashProxyGroupDef {
 export class ClashSynthesizer {
   private nodes: ClashProxyNode[] = [];
   private groups: ClashProxyGroupDef[] = [];
-
-  constructor(public mixedPort: number = 7890) {}
+  public mixedPort: number;
+  constructor(mixedPort: number = 7890) {
+    this.mixedPort = mixedPort;
+  }
 
   addNode(node: ClashProxyNode): void {
     this.nodes.push(node);

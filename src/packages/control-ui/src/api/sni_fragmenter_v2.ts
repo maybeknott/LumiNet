@@ -1,5 +1,8 @@
 export class SniFragmenterV2 {
-  constructor(public decoyDomain: string = 'www.microsoft.com') {}
+  public decoyDomain: string;
+  constructor(decoyDomain: string = 'www.microsoft.com') {
+    this.decoyDomain = decoyDomain;
+  }
 
   splitInMiddle(data: Uint8Array): [Uint8Array, Uint8Array] {
     const mid = Math.floor(data.length / 2);

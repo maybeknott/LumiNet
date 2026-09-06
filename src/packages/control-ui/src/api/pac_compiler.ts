@@ -1,8 +1,10 @@
 export class PacScriptCompiler {
   private directDomains = new Set<string>();
   private proxyDomains = new Set<string>();
-
-  constructor(public defaultProxy: string) {}
+  public defaultProxy: string;
+  constructor(defaultProxy: string) {
+    this.defaultProxy = defaultProxy;
+  }
 
   addDirectDomain(domain: string): void {
     const clean = domain.trim().replace(/^\./, '').toLowerCase();

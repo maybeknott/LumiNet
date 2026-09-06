@@ -18,19 +18,14 @@ export const DEFAULT_IRAN_NODES: string[] = [
 
 export type ProbeMethod = 'http' | 'ping' | 'dns';
 
-export type CensorshipVerdict =
-  | 'clean'
-  | 'filtered'
-  | 'high_loss'
-  | 'degraded'
-  | 'indeterminate';
+export type CensorshipVerdict = 'clean' | 'filtered' | 'high_loss' | 'degraded' | 'indeterminate';
 
 export interface NodeProbeResult {
   node: string;
   responsive: boolean;
-  rttMs?: number;
-  error?: string;
-  extraInfo?: string;
+  rttMs?: number | undefined;
+  error?: string | undefined;
+  extraInfo?: string | undefined;
 }
 
 export interface CheckHostAssessment {
@@ -40,7 +35,7 @@ export interface CheckHostAssessment {
   totalNodes: number;
   responsiveNodes: number;
   blockedNodes: number;
-  avgRttMs?: number;
+  avgRttMs?: number | undefined;
   nodeResults: Record<string, NodeProbeResult>;
   isReady: boolean;
 }
@@ -51,7 +46,7 @@ export interface CheckHostAssessment {
 export function buildCheckHostUrl(
   target: string,
   method: ProbeMethod,
-  nodes: string[] = DEFAULT_IRAN_NODES
+  nodes: string[] = DEFAULT_IRAN_NODES,
 ): string {
   const selectedNodes = nodes.length > 0 ? nodes : DEFAULT_IRAN_NODES;
   const params = new URLSearchParams();
@@ -73,7 +68,7 @@ export function buildResultUrl(requestId: string): string {
  * Extracts request ID from the initiation response.
  */
 export function parseInitiateResponse(
-  raw: string | { ok?: number; request_id?: string; error?: string }
+  raw: string | { ok?: number; request_id?: string; error?: string },
 ): string {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (data.error) {
@@ -91,7 +86,7 @@ export function parseInitiateResponse(
 export function evaluateVerdict(
   responsive: number,
   total: number,
-  avgLossPct: number
+  avgLossPct: number,
 ): CensorshipVerdict {
   if (total === 0) {
     return 'indeterminate';
@@ -114,7 +109,7 @@ export function evaluateVerdict(
 export function parseResultResponse(
   raw: string | Record<string, unknown>,
   target: string,
-  method: ProbeMethod
+  method: ProbeMethod,
 ): CheckHostAssessment {
   const data = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Record<string, unknown>;
 

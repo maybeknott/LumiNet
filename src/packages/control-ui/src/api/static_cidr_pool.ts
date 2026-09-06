@@ -9,8 +9,10 @@ export class StaticCidrPool {
   private nextHost = 2;
   private readonly allocated = new Map<string, StaticClientRecord>();
   private readonly revokedKeys = new Set<string>();
-
-  constructor(private readonly basePrefix = '10.66.0.') {}
+  private readonly basePrefix;
+  constructor(basePrefix = '10.66.0.') {
+    this.basePrefix = basePrefix;
+  }
 
   public allocateClient(clientId: string, publicKey: string): StaticClientRecord | null {
     if (this.nextHost >= 254) return null;
@@ -21,7 +23,7 @@ export class StaticCidrPool {
       clientId,
       allocatedIp: ip,
       publicKey,
-      isRevoked: false
+      isRevoked: false,
     };
     this.allocated.set(ip, record);
     return record;

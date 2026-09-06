@@ -58,7 +58,7 @@ export interface Socks4Request {
   port: number;
   ip: string;
   userId: string;
-  domain?: string;
+  domain?: string | undefined;
   isSocks4a: boolean;
   targetHost: string;
 }
@@ -66,16 +66,19 @@ export interface Socks4Request {
 /**
  * Parses SOCKS4 / SOCKS4a request wire frame.
  */
-export function parseSocks4Request(buf: Uint8Array): { req: Socks4Request; totalLen: number } {
+export function parseSocks4Request(buf: Uint8Array): {
+  req: Socks4Request;
+  totalLen: number;
+} {
   if (buf.length < 8) {
     throw new Error(`Buffer too short for SOCKS4 header: ${buf.length} < 8`);
   }
   if (buf[0] !== SOCKS4_VERSION) {
-    throw new Error(`Invalid SOCKS4 version: 0x${buf[0].toString(16)}`);
+    throw new Error(`Invalid SOCKS4 version: 0x${buf[0]!.toString(16)}`);
   }
 
   const command = buf[1];
-  const port = (buf[2] << 8) | buf[3];
+  const port = (buf[2]! << 8) | buf[3]!;
   const ip = `${buf[4]}.${buf[5]}.${buf[6]}.${buf[7]}`;
   const isSocks4a = buf[4] === 0 && buf[5] === 0 && buf[6] === 0 && buf[7] !== 0;
 
@@ -106,8 +109,8 @@ export function parseSocks4Request(buf: Uint8Array): { req: Socks4Request; total
   const targetHost = domain || ip;
   return {
     req: {
-      command,
-      port,
+      command: command!,
+      port: port!,
       ip,
       userId,
       domain,
@@ -121,7 +124,11 @@ export function parseSocks4Request(buf: Uint8Array): { req: Socks4Request; total
 /**
  * Builds 8-byte standard SOCKS4 response.
  */
-export function buildSocks4Reply(status: number, bndPort: number, bndIp: number[] = [0, 0, 0, 0]): Uint8Array {
+export function buildSocks4Reply(
+  status: number,
+  bndPort: number,
+  bndIp: number[] = [0, 0, 0, 0],
+): Uint8Array {
   const resp = new Uint8Array(8);
   resp[0] = 0x00;
   resp[1] = status;
@@ -140,14 +147,17 @@ export interface Socks5Greeting {
 /**
  * Parses SOCKS5 greeting method negotiation.
  */
-export function parseSocks5Greeting(buf: Uint8Array): { greeting: Socks5Greeting; totalLen: number } {
+export function parseSocks5Greeting(buf: Uint8Array): {
+  greeting: Socks5Greeting;
+  totalLen: number;
+} {
   if (buf.length < 2) {
     throw new Error(`Buffer too short for SOCKS5 greeting: ${buf.length} < 2`);
   }
   if (buf[0] !== SOCKS5_VERSION) {
-    throw new Error(`Invalid SOCKS5 version: 0x${buf[0].toString(16)}`);
+    throw new Error(`Invalid SOCKS5 version: 0x${buf[0]!.toString(16)}`);
   }
-  const nmethods = buf[1];
+  const nmethods = buf[1]!;
   const totalLen = 2 + nmethods;
   if (buf.length < totalLen) {
     throw new Error(`Buffer too short for SOCKS5 methods: ${buf.length} < ${totalLen}`);
@@ -173,16 +183,19 @@ export interface Socks5Request {
 /**
  * Parses SOCKS5 command request.
  */
-export function parseSocks5Request(buf: Uint8Array): { req: Socks5Request; totalLen: number } {
+export function parseSocks5Request(buf: Uint8Array): {
+  req: Socks5Request;
+  totalLen: number;
+} {
   if (buf.length < 4) {
     throw new Error(`Buffer too short for SOCKS5 request: ${buf.length} < 4`);
   }
   if (buf[0] !== SOCKS5_VERSION) {
-    throw new Error(`Invalid SOCKS5 version: 0x${buf[0].toString(16)}`);
+    throw new Error(`Invalid SOCKS5 version: 0x${buf[0]!.toString(16)}`);
   }
 
   const command = buf[1];
-  const atyp = buf[3];
+  const atyp = buf[3]!;
   let idx = 4;
   let targetHost: string;
 
@@ -195,7 +208,7 @@ export function parseSocks5Request(buf: Uint8Array): { req: Socks5Request; total
     }
     case SOCKS5_ATYP_DOMAIN: {
       if (buf.length < idx + 1) throw new Error('Buffer too short for domain length');
-      const dlen = buf[idx];
+      const dlen = buf[idx]!;
       idx += 1;
       if (buf.length < idx + dlen + 2) throw new Error('Buffer too short for domain string');
       const decoder = new TextDecoder();
@@ -207,7 +220,7 @@ export function parseSocks5Request(buf: Uint8Array): { req: Socks5Request; total
       if (buf.length < idx + 16 + 2) throw new Error('Buffer too short for IPv6 address');
       const parts: string[] = [];
       for (let i = 0; i < 16; i += 2) {
-        parts.push(((buf[idx + i] << 8) | buf[idx + i + 1]).toString(16));
+        parts.push(((buf[idx + i]! << 8) | buf[idx + i + 1]!).toString(16));
       }
       targetHost = parts.join(':');
       idx += 16;
@@ -220,12 +233,12 @@ export function parseSocks5Request(buf: Uint8Array): { req: Socks5Request; total
   if (buf.length < idx + 2) {
     throw new Error('Buffer too short for target port');
   }
-  const targetPort = (buf[idx] << 8) | buf[idx + 1];
+  const targetPort = (buf[idx]! << 8) | buf[idx + 1]!;
   idx += 2;
 
   return {
     req: {
-      command,
+      command: command!,
       targetHost,
       targetPort,
       addressType: atyp,
@@ -237,7 +250,11 @@ export function parseSocks5Request(buf: Uint8Array): { req: Socks5Request; total
 /**
  * Builds standard 10-byte IPv4 SOCKS5 command reply.
  */
-export function buildSocks5Reply(rep: number, bndPort: number, bndIp: number[] = [127, 0, 0, 1]): Uint8Array {
+export function buildSocks5Reply(
+  rep: number,
+  bndPort: number,
+  bndIp: number[] = [127, 0, 0, 1],
+): Uint8Array {
   const resp = new Uint8Array(10);
   resp[0] = SOCKS5_VERSION;
   resp[1] = rep;
@@ -272,8 +289,8 @@ export function parseHttpProxyRequest(header: string): HttpProxyRequest {
     throw new Error(`Invalid HTTP request line: ${firstLine}`);
   }
 
-  const method = parts[0].toUpperCase();
-  const rawUri = parts[1];
+  const method = parts[0]!.toUpperCase();
+  const rawUri = parts[1]!;
 
   if (method === 'CONNECT') {
     const colonIdx = rawUri.lastIndexOf(':');

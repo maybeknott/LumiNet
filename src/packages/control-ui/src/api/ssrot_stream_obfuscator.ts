@@ -1,14 +1,15 @@
-export enum SsrotObfsType {
-  Plain = 'plain',
-  HttpSimple = 'http_simple',
-  Tls12TicketAuth = 'tls12_ticket_auth',
-}
-
-export enum SsrotProtocolType {
-  Origin = 'origin',
-  AuthSha1V4 = 'auth_sha1_v4',
-  AuthChainA = 'auth_chain_a',
-}
+export const SsrotObfsType = {
+  Plain: 'plain',
+  HttpSimple: 'http_simple',
+  Tls12TicketAuth: 'tls12_ticket_auth',
+} as const;
+export type SsrotObfsType = (typeof SsrotObfsType)[keyof typeof SsrotObfsType];
+export const SsrotProtocolType = {
+  Origin: 'origin',
+  AuthSha1V4: 'auth_sha1_v4',
+  AuthChainA: 'auth_chain_a',
+} as const;
+export type SsrotProtocolType = (typeof SsrotProtocolType)[keyof typeof SsrotProtocolType];
 
 export interface SsrotConfig {
   password: string;
@@ -19,15 +20,15 @@ export interface SsrotConfig {
 
 export class SsrotStreamObfuscator {
   private sendId = 1;
-  private recvId = 1;
   private secretKey: Uint8Array;
-
-  constructor(public config: SsrotConfig) {
+  public config: SsrotConfig;
+  constructor(config: SsrotConfig) {
+    this.config = config;
     const encoder = new TextEncoder();
     const bytes = encoder.encode(config.password);
     this.secretKey = new Uint8Array(16);
     for (let i = 0; i < 16; i++) {
-      this.secretKey[i] = bytes[i % bytes.length] ^ (i * 31);
+      this.secretKey[i] = bytes[i % bytes.length]! ^ (i * 31);
     }
   }
 
@@ -46,7 +47,11 @@ export class SsrotStreamObfuscator {
     return this.wrapObfs(proto);
   }
 
-  serverDecodeHandshake(data: Uint8Array): { host: string; port: number; payload: Uint8Array } {
+  serverDecodeHandshake(data: Uint8Array): {
+    host: string;
+    port: number;
+    payload: Uint8Array;
+  } {
     const unwrappedObfs = this.unwrapObfs(data);
     const unwrappedProto = this.unwrapProtocol(unwrappedObfs);
 
@@ -59,14 +64,14 @@ export class SsrotStreamObfuscator {
       throw new Error(`Unsupported atyp: ${atyp}`);
     }
 
-    const hostLen = unwrappedProto[1];
+    const hostLen = unwrappedProto[1]!;
     if (unwrappedProto.length < 2 + hostLen + 2) {
       throw new Error('Incomplete handshake host/port');
     }
 
     const decoder = new TextDecoder();
     const host = decoder.decode(unwrappedProto.subarray(2, 2 + hostLen));
-    const port = (unwrappedProto[2 + hostLen] << 8) | unwrappedProto[3 + hostLen];
+    const port = (unwrappedProto[2 + hostLen]! << 8) | unwrappedProto[3 + hostLen]!;
     const payload = unwrappedProto.subarray(4 + hostLen);
 
     return { host, port, payload };
@@ -83,13 +88,13 @@ export class SsrotStreamObfuscator {
     chunk[5] = this.sendId & 0xff;
 
     for (let i = 0; i < data.length; i++) {
-      const k = this.secretKey[i % this.secretKey.length];
-      chunk[6 + i] = data[i] ^ k;
+      const k = this.secretKey[i % this.secretKey.length]!;
+      chunk[6 + i] = data[i]! ^ k;
     }
 
     let checksum = 0;
     for (let i = 0; i < 6 + data.length; i++) {
-      checksum = (checksum + chunk[i] * 33) & 0xffffffff;
+      checksum = (checksum + chunk[i]! * 33) & 0xffffffff;
     }
     chunk[6 + data.length] = (checksum >> 24) & 0xff;
     chunk[7 + data.length] = (checksum >> 16) & 0xff;
@@ -104,16 +109,14 @@ export class SsrotStreamObfuscator {
       throw new Error('Chunk too small');
     }
 
-    const length = (data[0] << 8) | data[1];
+    const length = (data[0]! << 8) | data[1]!;
     if (data.length < 6 + length + 4) {
       throw new Error('Incomplete chunk data');
     }
 
-    this.recvId = (data[2] << 24) | (data[3] << 16) | (data[4] << 8) | data[5];
-
     let checksum = 0;
     for (let i = 0; i < 6 + length; i++) {
-      checksum = (checksum + data[i] * 33) & 0xffffffff;
+      checksum = (checksum + data[i]! * 33) & 0xffffffff;
     }
     const expectedTag = [
       (checksum >> 24) & 0xff,
@@ -129,8 +132,8 @@ export class SsrotStreamObfuscator {
 
     const unmasked = new Uint8Array(length);
     for (let i = 0; i < length; i++) {
-      const k = this.secretKey[i % this.secretKey.length];
-      unmasked[i] = data[6 + i] ^ k;
+      const k = this.secretKey[i % this.secretKey.length]!;
+      unmasked[i] = data[6 + i]! ^ k;
     }
 
     return unmasked;
@@ -197,7 +200,7 @@ export class SsrotStreamObfuscator {
     if (data.length < 5 || data[0] !== 0x16) {
       throw new Error('Invalid TLS record framing');
     }
-    const len = (data[3] << 8) | data[4];
+    const len = (data[3]! << 8) | data[4]!;
     return data.subarray(5, 5 + len);
   }
 }

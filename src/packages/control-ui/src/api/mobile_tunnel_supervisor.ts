@@ -1,4 +1,5 @@
-export type MobileTunnelStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'STOPPED';
+export type MobileTunnelStatus =
+  'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'STOPPED';
 
 export type SplitTunnelPolicy = 'ALLOW_ALL' | 'EXCLUDE_PACKAGES' | 'INCLUDE_PACKAGES';
 
@@ -13,16 +14,18 @@ export interface MobileSupervisorSettings {
 export class MobileTunnelSupervisor {
   state: MobileTunnelStatus = 'DISCONNECTED';
   private reconnectCount = 0;
-
+  public settings: MobileSupervisorSettings;
   constructor(
-    public settings: MobileSupervisorSettings = {
+    settings: MobileSupervisorSettings = {
       splitMode: 'ALLOW_ALL',
       packages: [],
       primaryDns: '1.1.1.1',
       fallbackDns: '8.8.8.8',
       autoReconnect: true,
-    }
-  ) {}
+    },
+  ) {
+    this.settings = settings;
+  }
 
   startTunnel(): void {
     this.state = 'CONNECTING';

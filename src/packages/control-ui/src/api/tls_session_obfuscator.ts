@@ -6,9 +6,7 @@
  * active probing deflection routing, and Encrypted Client Hello (ECH) Draft-18 parsing.
  */
 
-export const CANONICAL_PADDED_TICKET_SIZES: number[] = [
-  160, 176, 192, 208, 218, 224, 240, 255,
-];
+export const CANONICAL_PADDED_TICKET_SIZES: number[] = [160, 176, 192, 208, 218, 224, 240, 255];
 
 /**
  * Normalizes TLS session ticket size to standard server distributions.
@@ -187,7 +185,7 @@ export function parseEchConfigList(data: Uint8Array): EchConfig[] {
       throw new Error('ECHConfig entry too short');
     }
 
-    const configId = entry[0];
+    const configId = entry[0]!;
     const kemId = entryView.getUint16(1, false);
     const pkLen = entryView.getUint16(3, false);
     let cOffset = 5;
@@ -215,13 +213,13 @@ export function parseEchConfigList(data: Uint8Array): EchConfig[] {
     }
     cOffset = cEnd;
 
-    const maxNameLength = entry[cOffset];
+    const maxNameLength = entry[cOffset]!;
     cOffset++;
 
     if (entry.length < cOffset + 1) {
       throw new Error('Missing public name length');
     }
-    const nameLen = entry[cOffset];
+    const nameLen = entry[cOffset]!;
     cOffset++;
 
     if (entry.length < cOffset + nameLen) {

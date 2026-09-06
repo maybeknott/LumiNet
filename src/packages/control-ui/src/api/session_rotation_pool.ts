@@ -13,8 +13,10 @@ export class SessionRotationPool {
   private accounts = new Map<string, ManagedAccountEntry>();
   private rotationOrder: string[] = [];
   private cursor = 0;
-
-  constructor(private defaultCooldownSec: number = 60) {}
+  private defaultCooldownSec: number;
+  constructor(defaultCooldownSec: number = 60) {
+    this.defaultCooldownSec = defaultCooldownSec;
+  }
 
   addAccount(accountId: string, token: string, maxUses: number): void {
     this.accounts.set(accountId, {
@@ -43,7 +45,7 @@ export class SessionRotationPool {
       const id = this.rotationOrder[this.cursor % n];
       this.cursor++;
 
-      const acc = this.accounts.get(id);
+      const acc = this.accounts.get(id!);
       if (acc && acc.status === 'READY') {
         acc.usesCount++;
         if (acc.usesCount >= acc.maxUses) {
@@ -66,7 +68,10 @@ export class SessionRotationPool {
   availableCount(nowSec: number): number {
     let count = 0;
     for (const acc of this.accounts.values()) {
-      if (acc.status === 'READY' || (acc.status === 'COOLING_DOWN' && nowSec >= acc.cooldownUntilSec)) {
+      if (
+        acc.status === 'READY' ||
+        (acc.status === 'COOLING_DOWN' && nowSec >= acc.cooldownUntilSec)
+      ) {
         count++;
       }
     }

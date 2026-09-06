@@ -1,8 +1,9 @@
-export enum ProxyProtocolVersion {
-  None = 'none',
-  V1 = 'v1',
-  V2 = 'v2'
-}
+export const ProxyProtocolVersion = {
+  None: 'none',
+  V1: 'v1',
+  V2: 'v2',
+} as const;
+export type ProxyProtocolVersion = (typeof ProxyProtocolVersion)[keyof typeof ProxyProtocolVersion];
 
 export interface RelayEndpoint {
   targetHost: string;
@@ -18,8 +19,12 @@ export class ZeroCopyRelaySupervisor {
   private endpointIndex = 0;
   private sessions: Map<number, RelayEndpoint> = new Map();
   private nextSessionId = 1;
-
-  constructor(public listenPort: number, public proxyProtocol: ProxyProtocolVersion) {}
+  public listenPort: number;
+  public proxyProtocol: ProxyProtocolVersion;
+  constructor(listenPort: number, proxyProtocol: ProxyProtocolVersion) {
+    this.listenPort = listenPort;
+    this.proxyProtocol = proxyProtocol;
+  }
 
   addEndpoint(ep: RelayEndpoint): void {
     this.endpoints.push(ep);
@@ -29,7 +34,7 @@ export class ZeroCopyRelaySupervisor {
     const healthy = this.endpoints.filter((e) => e.isAlive);
     if (healthy.length === 0) return null;
 
-    const chosen = healthy[this.endpointIndex % healthy.length];
+    const chosen = healthy[this.endpointIndex % healthy.length]!;
     this.endpointIndex++;
     chosen.activeConnections++;
 
@@ -47,7 +52,12 @@ export class ZeroCopyRelaySupervisor {
     }
   }
 
-  generateProxyHeader(clientIp: string, clientPort: number, serverIp: string, serverPort: number): Uint8Array {
+  generateProxyHeader(
+    clientIp: string,
+    clientPort: number,
+    serverIp: string,
+    serverPort: number,
+  ): Uint8Array {
     if (this.proxyProtocol === ProxyProtocolVersion.V1) {
       const family = clientIp.includes(':') ? 'TCP6' : 'TCP4';
       const str = `PROXY ${family} ${clientIp} ${serverIp} ${clientPort} ${serverPort}\r\n`;

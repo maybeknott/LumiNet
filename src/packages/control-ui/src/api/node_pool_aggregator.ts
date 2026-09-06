@@ -77,11 +77,11 @@ export class NodePoolAggregator {
 
     const parts = rem.split('@');
     const hostPort = parts.length > 1 ? parts[1] : parts[0];
-    const hostSplit = hostPort.split(':');
+    const hostSplit = hostPort!.split(':');
     if (hostSplit.length < 2) return null;
 
-    const host = hostSplit[0];
-    const portStr = hostSplit[1].split(/[/ ?#]/)[0];
+    const host = hostSplit[0]!;
+    const portStr = hostSplit[1]!.split(/[/ ?#]/)[0]!;
     const port = parseInt(portStr, 10) || 443;
 
     return {

@@ -1,12 +1,9 @@
 export class EntropyScrambledTunnel {
   public minPadding: number;
   public maxPadding: number;
-
-  constructor(
-    private secretKey: Uint8Array,
-    minPad: number = 8,
-    maxPad: number = 32
-  ) {
+  private secretKey: Uint8Array;
+  constructor(secretKey: Uint8Array, minPad: number = 8, maxPad: number = 32) {
+    this.secretKey = secretKey;
     this.minPadding = Math.max(4, minPad);
     this.maxPadding = Math.max(this.minPadding + 8, maxPad);
   }
@@ -49,8 +46,8 @@ export class EntropyScrambledTunnel {
     const increment = 1442695040888963407n;
     for (let i = 0; i < data.length; i++) {
       s = (s * multiplier + increment) & 0xffffffffffffffffn;
-      const mask = Number((s >> 33n) & 0xffn) ^ this.secretKey[i % this.secretKey.length];
-      data[i] ^= mask;
+      const mask = Number((s >> 33n) & 0xffn) ^ this.secretKey[i % this.secretKey.length]!;
+      data[i]! ^= mask;
     }
   }
 
@@ -58,7 +55,7 @@ export class EntropyScrambledTunnel {
     if (data.length === 0) return 0;
     const counts = new Array(256).fill(0);
     for (let i = 0; i < data.length; i++) {
-      counts[data[i]]++;
+      counts[data[i]!]++;
     }
     const total = data.length;
     let entropy = 0;

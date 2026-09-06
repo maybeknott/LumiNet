@@ -39,12 +39,12 @@ export class TlsSessionTunnelAdapter {
 
   unframeEarlyData(data: Uint8Array): { ticketId: string; payload: Uint8Array } | null {
     if (data.length < 3) return null;
-    const tLen = data[0];
+    const tLen = data[0]!;
     if (data.length < 1 + tLen + 2) return null;
 
     const decoder = new TextDecoder();
     const ticketId = decoder.decode(data.slice(1, 1 + tLen));
-    const pLen = (data[1 + tLen] << 8) | data[2 + tLen];
+    const pLen = (data[1 + tLen]! << 8) | data[2 + tLen]!;
     const start = 3 + tLen;
     if (data.length < start + pLen) return null;
 

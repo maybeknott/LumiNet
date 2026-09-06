@@ -25,10 +25,18 @@ export class MultiprotocolTrafficInspector {
     };
   }
 
-  public inspectStream(data: Uint8Array): { protocol: ProtocolType; verdict: InspectionVerdict; metadata: string | null } {
+  public inspectStream(data: Uint8Array): {
+    protocol: ProtocolType;
+    verdict: InspectionVerdict;
+    metadata: string | null;
+  } {
     this.inspectedCount++;
     if (data.length === 0) {
-      return { protocol: 'unknown', verdict: 'needs_more_data', metadata: null };
+      return {
+        protocol: 'unknown',
+        verdict: 'needs_more_data',
+        metadata: null,
+      };
     }
 
     const str = new TextDecoder('utf-8', { fatal: false }).decode(data);
@@ -66,7 +74,12 @@ export class MultiprotocolTrafficInspector {
     }
 
     // HTTP / WebSocket check
-    if (str.startsWith('GET ') || str.startsWith('POST ') || str.startsWith('CONNECT ') || str.startsWith('HEAD ')) {
+    if (
+      str.startsWith('GET ') ||
+      str.startsWith('POST ') ||
+      str.startsWith('CONNECT ') ||
+      str.startsWith('HEAD ')
+    ) {
       const isWs = str.toLowerCase().includes('upgrade: websocket');
       const proto = isWs ? 'websocket' : 'http';
       return {
@@ -77,7 +90,11 @@ export class MultiprotocolTrafficInspector {
     }
 
     if (data.length < 8) {
-      return { protocol: 'unknown', verdict: 'needs_more_data', metadata: null };
+      return {
+        protocol: 'unknown',
+        verdict: 'needs_more_data',
+        metadata: null,
+      };
     }
     return { protocol: 'unknown', verdict: 'denied', metadata: null };
   }
@@ -87,7 +104,7 @@ export class MultiprotocolTrafficInspector {
     let cursor = 43;
     if (cursor >= data.length) return null;
 
-    const sessLen = data[cursor];
+    const sessLen = data[cursor]!;
     cursor += 1 + sessLen;
     if (cursor + 2 > data.length) return null;
 
@@ -96,7 +113,7 @@ export class MultiprotocolTrafficInspector {
     cursor += 2 + cipherLen;
     if (cursor + 1 > data.length) return null;
 
-    const compLen = data[cursor];
+    const compLen = data[cursor]!;
     cursor += 1 + compLen;
     if (cursor + 2 > data.length) return null;
 

@@ -1,5 +1,8 @@
 export class MasqueDatagramTunnel {
-  constructor(public contextId: number = 0) {}
+  public contextId: number;
+  constructor(contextId: number = 0) {
+    this.contextId = contextId;
+  }
 
   encodeDatagram(payload: Uint8Array): Uint8Array {
     const varintBytes = this.encodeVarint(this.contextId);
@@ -37,13 +40,13 @@ export class MasqueDatagramTunnel {
 
   private decodeVarint(data: Uint8Array): { val: number; len: number } | null {
     if (data.length === 0) return null;
-    const first = data[0];
+    const first = data[0]!;
     const prefix = first >> 6;
     if (prefix === 0) {
       return { val: first & 0x3f, len: 1 };
     } else if (prefix === 1) {
       if (data.length < 2) return null;
-      const val = ((first & 0x3f) << 8) | data[1];
+      const val = ((first & 0x3f) << 8) | data[1]!;
       return { val, len: 2 };
     } else if (prefix === 2) {
       if (data.length < 4) return null;

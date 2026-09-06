@@ -10,8 +10,12 @@ export class SslVpnAdapterUI {
   private active = false;
   private rx = 0;
   private tx = 0;
-
-  constructor(public readonly gateway: string, public readonly virtualIp: string) {}
+  public readonly gateway: string;
+  public readonly virtualIp: string;
+  constructor(gateway: string, virtualIp: string) {
+    this.gateway = gateway;
+    this.virtualIp = virtualIp;
+  }
 
   activate(): boolean {
     this.active = true;

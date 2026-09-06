@@ -4,7 +4,7 @@
 Client-side application state stores.
 
 ## Contents
-- Direct files (1): `systemStore.ts`
+- Direct files (2): `connectionLineageStore.ts`, `systemStore.ts`
 
 ## Interfaces and dependencies
 - React/TypeScript source; imports flow through Vite/TypeScript module resolution and daemon calls go through the browser API adapter.

@@ -18,7 +18,10 @@ export class SubscriptionNodeExtractor {
       return [];
     }
 
-    const lines = decoded.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    const lines = decoded
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
     const nodes: ExtractedProxyNode[] = [];
 
     for (const line of lines) {
@@ -75,9 +78,9 @@ export class SubscriptionNodeExtractor {
       const [mainPart, rawRemark] = withoutScheme.split('#');
       const remark = rawRemark ? decodeURIComponent(rawRemark) : '';
 
-      if (mainPart.includes('@')) {
-        const [cred, hostPort] = mainPart.split('@');
-        const [host, portStr] = hostPort.split(':');
+      if (mainPart?.includes('@')) {
+        const [cred, hostPort] = mainPart.split('@') as [string, string];
+        const [host, portStr] = hostPort.split(':') as [string, string];
         return {
           nodeType: 'shadowsocks',
           address: host,

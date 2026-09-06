@@ -1,8 +1,9 @@
-export enum QuotaAlertLevel {
-  Normal = 'normal',
-  Warning80 = 'warning_80',
-  Exhausted = 'exhausted'
-}
+export const QuotaAlertLevel = {
+  Normal: 'normal',
+  Warning80: 'warning_80',
+  Exhausted: 'exhausted',
+} as const;
+export type QuotaAlertLevel = (typeof QuotaAlertLevel)[keyof typeof QuotaAlertLevel];
 
 export interface UserBandwidthQuota {
   userId: string;
@@ -19,7 +20,7 @@ export class BandwidthQuotaEnforcer {
       userId,
       maxBytes,
       usedBytes: 0,
-      isActive: true
+      isActive: true,
     });
   }
 

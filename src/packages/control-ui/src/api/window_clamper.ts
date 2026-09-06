@@ -1,5 +1,10 @@
 export class WindowClamper {
-  constructor(public clampedSize: number = 4, public enabled: boolean = true) {}
+  public clampedSize: number;
+  public enabled: boolean;
+  constructor(clampedSize: number = 4, enabled: boolean = true) {
+    this.clampedSize = clampedSize;
+    this.enabled = enabled;
+  }
 
   clampWindow(originalWindow: number, isHandshake: boolean): number {
     if (!this.enabled) return originalWindow;

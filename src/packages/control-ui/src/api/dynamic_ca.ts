@@ -9,10 +9,16 @@ export interface GeneratedCert {
 export class DynamicCaManager {
   private serialCounter = 1000;
   private readonly cache = new Map<string, GeneratedCert>();
+  private readonly caName;
+  constructor(caName = 'LumiNet Root CA') {
+    this.caName = caName;
+  }
 
-  constructor(private readonly caName = 'LumiNet Root CA') {}
-
-  public issueOrGetCert(commonName: string, validityDurationMs: number, nowMs = Date.now()): GeneratedCert {
+  public issueOrGetCert(
+    commonName: string,
+    validityDurationMs: number,
+    nowMs = Date.now(),
+  ): GeneratedCert {
     const existing = this.cache.get(commonName);
     if (existing && nowMs < existing.notAfterMs) {
       return existing;
@@ -26,7 +32,7 @@ export class DynamicCaManager {
       serialNumber: this.serialCounter,
       notBeforeMs: nowMs,
       notAfterMs: nowMs + validityDurationMs,
-      certPayload: payload
+      certPayload: payload,
     };
     this.cache.set(commonName, cert);
     return cert;

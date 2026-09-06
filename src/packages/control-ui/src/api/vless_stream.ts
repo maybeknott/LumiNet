@@ -123,8 +123,8 @@ export function parseVlessResponseHeader(data: Uint8Array): {
   if (data.length < 2) {
     throw new Error('VLESS response header too short');
   }
-  const version = data[0];
-  const addonsLen = data[1];
+  const version = data[0]!;
+  const addonsLen = data[1]!;
   if (data.length < 2 + addonsLen) {
     throw new Error('VLESS response addons buffer truncated');
   }

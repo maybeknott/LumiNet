@@ -5,7 +5,7 @@ Authored React application source.
 
 ## Contents
 - Direct files (6): `App.tsx`, `AppLayout.tsx`, `CommandPalette.tsx`, `index.css`, `main.tsx`, `navigation.ts`
-- Child folders: `api/`, `hooks/`, `lib/`, `pages/`, `store/`.
+- Child folders: `api/`, `hooks/`, `lib/`, `locales/`, `pages/`, `presets/`, `store/`, `utils/`.
 
 ## Interfaces and dependencies
 - React/TypeScript source; imports flow through Vite/TypeScript module resolution and daemon calls go through the browser API adapter.

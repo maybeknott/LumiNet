@@ -38,17 +38,23 @@ export interface CarrierEdge {
 
 export const DEFAULT_MCI_EDGES: CarrierEdge[] = [
   { address: '104.18.1.1', port: 443, role: 'primary', finalmaskMaxSplit: 2 },
-  { address: '104.18.1.1', port: 443, role: 'irancell', finalmaskMaxSplit: 100 },
+  {
+    address: '104.18.1.1',
+    port: 443,
+    role: 'irancell',
+    finalmaskMaxSplit: 100,
+  },
   { address: '172.66.0.1', port: 443, role: 'fallback', finalmaskMaxSplit: 2 },
 ];
 
 export class CarrierRouteSelector {
   private failedUntil: Map<string, number> = new Map();
-
-  constructor(
-    private cooldownMs: number = 12_000,
-    private clockMs: () => number = () => Date.now()
-  ) {}
+  private cooldownMs: number;
+  private clockMs: () => number;
+  constructor(cooldownMs: number = 12000, clockMs: () => number = () => Date.now()) {
+    this.cooldownMs = cooldownMs;
+    this.clockMs = clockMs;
+  }
 
   orderedEdges(edges: CarrierEdge[]): CarrierEdge[] {
     const now = this.clockMs();
@@ -86,7 +92,7 @@ export class CarrierRouteSelector {
 export function locateSni(data: Uint8Array): [number, number] | null {
   if (data.length < 9 || data[0] !== 0x16) return null;
 
-  const recordLen = (data[3] << 8) | data[4];
+  const recordLen = (data[3]! << 8) | data[4]!;
   const recordEnd = Math.min(data.length, 5 + recordLen);
 
   let pos = 5;
@@ -95,25 +101,25 @@ export function locateSni(data: Uint8Array): [number, number] | null {
   pos += 4 + 2 + 32; // handshake (4) + version (2) + random (32)
   if (pos >= recordEnd) return null;
 
-  const sessionLen = data[pos];
+  const sessionLen = data[pos]!;
   pos += 1 + sessionLen;
   if (pos + 2 > recordEnd) return null;
 
-  const cipherLen = (data[pos] << 8) | data[pos + 1];
+  const cipherLen = (data[pos]! << 8) | data[pos + 1]!;
   pos += 2 + cipherLen;
   if (pos + 1 > recordEnd) return null;
 
-  const compLen = data[pos];
+  const compLen = data[pos]!;
   pos += 1 + compLen;
   if (pos + 2 > recordEnd) return null;
 
-  const extLen = (data[pos] << 8) | data[pos + 1];
+  const extLen = (data[pos]! << 8) | data[pos + 1]!;
   pos += 2;
   const extEnd = Math.min(recordEnd, pos + extLen);
 
   while (pos + 4 <= extEnd) {
-    const extType = (data[pos] << 8) | data[pos + 1];
-    const extDataLen = (data[pos + 2] << 8) | data[pos + 3];
+    const extType = (data[pos]! << 8) | data[pos + 1]!;
+    const extDataLen = (data[pos + 2]! << 8) | data[pos + 3]!;
     pos += 4;
 
     if (extType === 0x0000 && pos + extDataLen <= extEnd) {
@@ -121,7 +127,7 @@ export function locateSni(data: Uint8Array): [number, number] | null {
       const namesEnd = pos + extDataLen;
       while (namePos + 3 <= namesEnd) {
         const nameType = data[namePos];
-        const nameLen = (data[namePos + 1] << 8) | data[namePos + 2];
+        const nameLen = (data[namePos + 1]! << 8) | data[namePos + 2]!;
         namePos += 3;
         if (nameType === 0 && namePos + nameLen <= namesEnd) {
           return [namePos, nameLen];
@@ -184,7 +190,7 @@ export function splitTlsRecord(data: Uint8Array, atSni: boolean): Uint8Array[] {
   }
 
   requested = Math.max(1, Math.min(requested, payload.length - 1));
-  const version: [number, number] = [data[1], data[2]];
+  const version: [number, number] = [data[1]!, data[2]!];
   return [
     tlsRecordFrame(version, payload.slice(0, requested)),
     tlsRecordFrame(version, payload.slice(requested)),
@@ -193,8 +199,8 @@ export function splitTlsRecord(data: Uint8Array, atSni: boolean): Uint8Array[] {
 
 export function rewriteFinalMaskWrites(
   data: Uint8Array,
-  settings: FinalMaskSettings = DEFAULT_FINALMASK_SETTINGS
-): { firstWrite: Uint8Array; trailingWrite?: Uint8Array } {
+  settings: FinalMaskSettings = DEFAULT_FINALMASK_SETTINGS,
+): { firstWrite: Uint8Array; trailingWrite?: Uint8Array | undefined } {
   if (
     settings.packet !== 'tlshello' ||
     settings.length <= 0 ||
@@ -205,13 +211,13 @@ export function rewriteFinalMaskWrites(
     return { firstWrite: data.slice() };
   }
 
-  const recordLen = (data[3] << 8) | data[4];
+  const recordLen = (data[3]! << 8) | data[4]!;
   const recordEnd = 5 + recordLen;
   if (recordLen <= settings.length || recordEnd > data.length) {
     return { firstWrite: data.slice() };
   }
 
-  const version: [number, number] = [data[1], data[2]];
+  const version: [number, number] = [data[1]!, data[2]!];
   const payload = data.slice(5, recordEnd);
   const first = tlsRecordFrame(version, payload.slice(0, settings.length));
   const second = tlsRecordFrame(version, payload.slice(settings.length));
@@ -227,7 +233,7 @@ export function rewriteFinalMaskWrites(
 export function fragment(
   data: Uint8Array,
   strategy: MultiFragmentStrategy,
-  settings: FinalMaskSettings = DEFAULT_FINALMASK_SETTINGS
+  settings: FinalMaskSettings = DEFAULT_FINALMASK_SETTINGS,
 ): Uint8Array[] {
   switch (strategy) {
     case 'FINALMASK_TLS_HELLO': {

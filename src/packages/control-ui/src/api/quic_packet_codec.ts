@@ -1,10 +1,11 @@
-export enum QuicHeaderType {
-  Initial = 0x00,
-  ZeroRtt = 0x01,
-  Handshake = 0x02,
-  Retry = 0x03,
-  OneRttShort = 0x04,
-}
+export const QuicHeaderType = {
+  Initial: 0,
+  ZeroRtt: 1,
+  Handshake: 2,
+  Retry: 3,
+  OneRttShort: 4,
+} as const;
+export type QuicHeaderType = (typeof QuicHeaderType)[keyof typeof QuicHeaderType];
 
 export interface QuicPacketHeader {
   headerType: QuicHeaderType;
@@ -49,28 +50,24 @@ export class QuicPacketCodec {
       throw new Error('Unexpected EOF reading varint');
     }
 
-    const prefix = data[0] >> 6;
+    const prefix = data[0]! >> 6;
     switch (prefix) {
       case 0:
-        return { value: data[0], bytesRead: 1 };
+        return { value: data[0]!, bytesRead: 1 };
       case 1: {
         if (data.length < 2) throw new Error('Varint truncated at 2 bytes');
-        const val = ((data[0] & 0x3f) << 8) | data[1];
+        const val = ((data[0]! & 0x3f) << 8) | data[1]!;
         return { value: val, bytesRead: 2 };
       }
       case 2: {
         if (data.length < 4) throw new Error('Varint truncated at 4 bytes');
-        const val =
-          ((data[0] & 0x3f) * 0x1000000) +
-          (data[1] << 16) +
-          (data[2] << 8) +
-          data[3];
+        const val = (data[0]! & 0x3f) * 0x1000000 + (data[1]! << 16) + (data[2]! << 8) + data[3]!;
         return { value: val, bytesRead: 4 };
       }
       case 3: {
         if (data.length < 8) throw new Error('Varint truncated at 8 bytes');
-        let hi = ((data[0] & 0x3f) << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-        let lo = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
+        let hi = ((data[0]! & 0x3f) << 24) | (data[1]! << 16) | (data[2]! << 8) | data[3]!;
+        let lo = (data[4]! << 24) | (data[5]! << 16) | (data[6]! << 8) | data[7]!;
         const val = (hi >>> 0) * 0x100000000 + (lo >>> 0);
         return { value: val, bytesRead: 8 };
       }
@@ -141,11 +138,11 @@ export class QuicPacketCodec {
 
   static decodePacket(
     data: Uint8Array,
-    destCidLen: number
+    destCidLen: number,
   ): { header: QuicPacketHeader; payload: Uint8Array } {
     if (data.length === 0) throw new Error('Empty packet');
 
-    const firstByte = data[0];
+    const firstByte = data[0]!;
     const isLongHeader = (firstByte & 0x80) !== 0;
 
     if (isLongHeader) {
@@ -170,30 +167,27 @@ export class QuicPacketCodec {
           throw new Error('Invalid long header type');
       }
 
-      const version =
-        ((data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4]) >>> 0;
+      const version = ((data[1]! << 24) | (data[2]! << 16) | (data[3]! << 8) | data[4]!) >>> 0;
       let offset = 5;
 
-      const dcidLen = data[offset];
+      const dcidLen = data[offset]!;
       offset += 1;
       if (offset + dcidLen > data.length) throw new Error('DCID truncated');
       const destCid = data.subarray(offset, offset + dcidLen);
       offset += dcidLen;
 
       if (offset >= data.length) throw new Error('SCID len truncated');
-      const scidLen = data[offset];
+      const scidLen = data[offset]!;
       offset += 1;
       if (offset + scidLen > data.length) throw new Error('SCID truncated');
       const srcCid = data.subarray(offset, offset + scidLen);
       offset += scidLen;
 
-      const { value: payloadLen, bytesRead: varintLen } = this.decodeVarint(
-        data.subarray(offset)
-      );
+      const { value: payloadLen, bytesRead: varintLen } = this.decodeVarint(data.subarray(offset));
       offset += varintLen;
 
       if (offset + 2 > data.length) throw new Error('Packet number truncated');
-      const packetNumber = (data[offset] << 8) | data[offset + 1];
+      const packetNumber = (data[offset]! << 8) | data[offset + 1]!;
       offset += 2;
 
       const payloadSize = Math.max(0, payloadLen - 2);
@@ -216,7 +210,7 @@ export class QuicPacketCodec {
       const destCid = data.subarray(offset, offset + destCidLen);
       offset += destCidLen;
 
-      const packetNumber = (data[offset] << 8) | data[offset + 1];
+      const packetNumber = (data[offset]! << 8) | data[offset + 1]!;
       offset += 2;
 
       const payload = data.subarray(offset);

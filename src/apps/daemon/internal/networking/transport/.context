@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/networking/transport
+
+## Purpose
+Daemon transport implementation module.
+
+## Architectural role
+- Daemon dependency band: `networking` (rank 2; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (123): `adaptive_protocol.go`, `adaptive_protocol_test.go`, `amnezia_obfs_parameters.go`, `amnezia_obfs_parameters_test.go`, `brutal_pacer.go`, `brutal_pacer_test.go`, `camouflage_stream_masquerader.go`, `camouflage_stream_masquerader_test.go`, `censorship_trigger_generator.go`, `censorship_trigger_generator_test.go`, `channel_mux.go`, `channel_mux_test.go` …
+
+## Interfaces and dependencies
+- Go package: `transport`.
+- Notable exported surface: `AdaptiveTransportCoordinator`, `AmneziaObfsParameters`, `AutonomousEvasionOrchestrator`, `BackendEngineType`, `BondingMode`, `BrutalPacer`, `BuildFrontedRequest`, `BuildHTTPConnectOK`, `BuildPaddedClientHello`, `BuildSocks4Reply` …
+- Daemon-local dependencies: `internal/foundation/boundedio`.
+- Direct daemon callers: `internal/networking/routing`.
+
+## Invariants
+- `networking` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

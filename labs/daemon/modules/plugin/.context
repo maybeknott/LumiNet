@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/platform/plugin
+
+## Purpose
+Daemon plugin implementation module.
+
+## Architectural role
+- Daemon dependency band: `platform` (rank 1; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (2): `native_bridge.go`, `native_bridge_test.go`
+
+## Interfaces and dependencies
+- Go package: `plugin`.
+- Notable exported surface: `NativePluginDescriptor`, `NewNativePluginDescriptor`, `NewPluginProcessManager`, `PluginCommandConfig`, `PluginProcessManager`.
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- `platform` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

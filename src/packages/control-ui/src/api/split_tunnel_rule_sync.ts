@@ -19,10 +19,15 @@ export class SplitTunnelRuleSync {
     this.defaultAction = defaultAction;
   }
 
-  public addRule(id: string, cidr: string, action: SplitRoutingAction, priority: number = 100): void {
+  public addRule(
+    id: string,
+    cidr: string,
+    action: SplitRoutingAction,
+    priority: number = 100,
+  ): void {
     const parts = cidr.trim().split('/');
-    const netStr = parts[0];
-    const prefix = parts.length === 2 ? parseInt(parts[1], 10) : 32;
+    const netStr = parts[0]!;
+    const prefix = parts.length === 2 ? parseInt(parts[1]!, 10) : 32;
 
     this.rules.push({
       id,

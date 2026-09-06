@@ -1,4 +1,4 @@
-export type AutoTunePresetStability = "Stable" | "Aggressive";
+export type AutoTunePresetStability = 'Stable' | 'Aggressive';
 
 export interface AutoTunePreset {
   id: string;
@@ -18,8 +18,8 @@ export interface AutoTunePreset {
 
 export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
   {
-    id: "iran-average",
-    label: "Iran Default",
+    id: 'iran-average',
+    label: 'Iran Default',
     minUploadMtu: 40,
     maxUploadMtu: 140,
     minDownloadMtu: 300,
@@ -30,11 +30,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 7,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-low-mtu-scan",
-    label: "Iran Low MTU Scan",
+    id: 'iran-low-mtu-scan',
+    label: 'Iran Low MTU Scan',
     minUploadMtu: 20,
     maxUploadMtu: 120,
     minDownloadMtu: 160,
@@ -45,11 +45,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 7,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-fast-low-mtu",
-    label: "Iran Fast Low MTU",
+    id: 'iran-fast-low-mtu',
+    label: 'Iran Fast Low MTU',
     minUploadMtu: 20,
     maxUploadMtu: 325,
     minDownloadMtu: 100,
@@ -60,11 +60,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 10,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-compact-fixed",
-    label: "Iran Compact Fixed",
+    id: 'iran-compact-fixed',
+    label: 'Iran Compact Fixed',
     minUploadMtu: 62,
     maxUploadMtu: 62,
     minDownloadMtu: 414,
@@ -75,11 +75,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 8,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-fixed-64-balanced",
-    label: "Iran Fixed 64 Balanced",
+    id: 'iran-fixed-64-balanced',
+    label: 'Iran Fixed 64 Balanced',
     minUploadMtu: 64,
     maxUploadMtu: 64,
     minDownloadMtu: 756,
@@ -90,11 +90,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 8,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-mid-reliable",
-    label: "Iran Mid Reliable",
+    id: 'iran-mid-reliable',
+    label: 'Iran Mid Reliable',
     minUploadMtu: 120,
     maxUploadMtu: 160,
     minDownloadMtu: 652,
@@ -105,11 +105,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 11,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-download-heavy",
-    label: "Iran Download Heavy",
+    id: 'iran-download-heavy',
+    label: 'Iran Download Heavy',
     minUploadMtu: 104,
     maxUploadMtu: 139,
     minDownloadMtu: 394,
@@ -120,11 +120,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 30,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Stable",
+    stability: 'Stable',
   },
   {
-    id: "iran-fixed-64-aggressive",
-    label: "Iran Fixed 64 Wide",
+    id: 'iran-fixed-64-aggressive',
+    label: 'Iran Fixed 64 Wide',
     minUploadMtu: 64,
     maxUploadMtu: 64,
     minDownloadMtu: 756,
@@ -135,11 +135,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 30,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Aggressive",
+    stability: 'Aggressive',
   },
   {
-    id: "iran-large-download-aggressive",
-    label: "Iran No Compression Max",
+    id: 'iran-large-download-aggressive',
+    label: 'Iran No Compression Max',
     minUploadMtu: 100,
     maxUploadMtu: 600,
     minDownloadMtu: 800,
@@ -150,11 +150,11 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 30,
     uploadCompression: 0,
     downloadCompression: 0,
-    stability: "Aggressive",
+    stability: 'Aggressive',
   },
   {
-    id: "iran-wide-range-aggressive",
-    label: "Iran Wide Range Max",
+    id: 'iran-wide-range-aggressive',
+    label: 'Iran Wide Range Max',
     minUploadMtu: 100,
     maxUploadMtu: 1000,
     minDownloadMtu: 200,
@@ -165,7 +165,7 @@ export const AUTO_TUNE_PRESETS: AutoTunePreset[] = [
     downloadDuplication: 30,
     uploadCompression: 2,
     downloadCompression: 2,
-    stability: "Aggressive",
+    stability: 'Aggressive',
   },
 ];
 
@@ -175,7 +175,7 @@ export function getPresetById(id: string): AutoTunePreset | undefined {
 
 export function chunkResolversRoundRobin(
   resolvers: string[],
-  requestedWorkers: number
+  requestedWorkers: number,
 ): string[][] {
   const clean = resolvers.map((r) => r.trim()).filter((r) => r.length > 0);
   if (clean.length === 0) return [];
@@ -184,7 +184,7 @@ export function chunkResolversRoundRobin(
   const chunks: string[][] = Array.from({ length: workerCount }, () => []);
 
   clean.forEach((resolver, index) => {
-    chunks[index % workerCount].push(resolver);
+    chunks[index % workerCount]!.push(resolver);
   });
 
   return chunks;
@@ -200,16 +200,16 @@ export interface DnsProfileRecord {
 
 export function encodeDnsProfileLink(record: DnsProfileRecord): string {
   if (!record.domain.trim() || !record.encryptionKey.trim()) {
-    throw new Error("Domain and encryption key are required");
+    throw new Error('Domain and encryption key are required');
   }
 
   const wire = {
-    schema: "whitedns.profile",
+    schema: 'whitedns.profile',
     version: 1,
     profile: {
       name: record.name.trim() || record.domain.trim(),
       server: {
-        domain: record.domain.trim().replace(/\.+$/, ""),
+        domain: record.domain.trim().replace(/\.+$/, ''),
         encryption_key: record.encryptionKey.trim(),
         encryption_method: Math.max(0, Math.min(5, record.encryptionMethod)),
       },
@@ -217,27 +217,27 @@ export function encodeDnsProfileLink(record: DnsProfileRecord): string {
   };
 
   const jsonStr = JSON.stringify(wire);
-  const b64 = Buffer.from(jsonStr, "utf8").toString("base64url");
-  const scheme = record.engine.trim().toLowerCase() || "stormdns";
+  const b64 = btoa(jsonStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const scheme = record.engine.trim().toLowerCase() || 'stormdns';
   return `${scheme}://${b64}`;
 }
 
 export function decodeDnsProfileLink(link: string): DnsProfileRecord {
-  const parts = link.split("://");
+  const parts = link.split('://');
   if (parts.length !== 2) {
-    throw new Error("Invalid profile URI format");
+    throw new Error('Invalid profile URI format');
   }
 
-  const engine = parts[0].toLowerCase();
-  let payload = parts[1].split(/[#?]/)[0].trim();
+  const engine = parts[0]!.toLowerCase();
+  let payload = parts[1]!.split(/[#?]/)[0]!.trim();
   if (!payload) {
-    throw new Error("Empty profile payload");
+    throw new Error('Empty profile payload');
   }
 
-  const jsonStr = Buffer.from(payload, "base64").toString("utf8");
+  const jsonStr = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
   const wire = JSON.parse(jsonStr);
 
-  if (wire.schema !== "whitedns.profile") {
+  if (wire.schema !== 'whitedns.profile') {
     throw new Error(`Unsupported profile schema: ${wire.schema}`);
   }
 

@@ -1,7 +1,8 @@
-export enum HybridShadowCipher {
-  AeadAes256Gcm = 'AEAD_AES_256_GCM',
-  AeadChacha20Poly1305 = 'AEAD_CHACHA20_POLY1305',
-}
+export const HybridShadowCipher = {
+  AeadAes256Gcm: 'AEAD_AES_256_GCM',
+  AeadChacha20Poly1305: 'AEAD_CHACHA20_POLY1305',
+} as const;
+export type HybridShadowCipher = (typeof HybridShadowCipher)[keyof typeof HybridShadowCipher];
 
 export interface HybridShadowConfig {
   cipher?: HybridShadowCipher;
@@ -41,8 +42,8 @@ export class HybridShadowV2Transport {
   deriveSubkey(salt: Uint8Array): Uint8Array {
     const subkey = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
-      const pskByte = this.config.psk[i % this.config.psk.length];
-      const saltByte = salt[i % salt.length];
+      const pskByte = this.config.psk[i % this.config.psk.length]!;
+      const saltByte = salt[i % salt.length]!;
       subkey[i] = (pskByte ^ saltByte ^ (i * 7 + 13)) & 0xff;
     }
     return subkey;
@@ -56,7 +57,9 @@ export class HybridShadowV2Transport {
       }
     }
 
-    const hex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hex = Array.from(salt)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
     if (this.saltHistory.has(hex)) {
       return false; // Replay detected
     }
@@ -78,11 +81,11 @@ export class HybridShadowV2Transport {
 
   unframePayload(data: Uint8Array): { salt: Uint8Array; payload: Uint8Array } | null {
     if (data.length < 3) return null;
-    const saltLen = data[0];
+    const saltLen = data[0]!;
     if (data.length < 1 + saltLen + 2) return null;
 
     const salt = data.slice(1, 1 + saltLen);
-    const pLen = (data[1 + saltLen] << 8) | data[2 + saltLen];
+    const pLen = (data[1 + saltLen]! << 8) | data[2 + saltLen]!;
     const start = 3 + saltLen;
     if (data.length < start + pLen) return null;
 

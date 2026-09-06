@@ -1,0 +1,18 @@
+# src/packages/lumicore/src/quic
+
+## Purpose
+Reachable Rust `quic` implementation module within LumiCore.
+
+## Contents
+- Direct files (5): `client_initial.rs`, `fuzz_ish.rs`, `mod.rs`, `scan.rs`, `zero_rtt_session_cache.rs`
+
+## Interfaces and dependencies
+- Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.
+- Host-facing changes must preserve the versioned FFI envelope and private Go ABI declaration checks.
+
+## Invariants
+- Do not advertise or promote dormant native surfaces without the Cargo/ABI/CGO verification gate.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

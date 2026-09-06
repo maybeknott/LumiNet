@@ -14,17 +14,14 @@ export class OnDeviceDpiEvader {
       return [clientHello];
     }
     const pos = Math.max(1, Math.min(splitOffset, clientHello.length - 1));
-    return [
-      clientHello.slice(0, pos),
-      clientHello.slice(pos)
-    ];
+    return [clientHello.slice(0, pos), clientHello.slice(pos)];
   }
 
   public applyHttpDesync(request: Uint8Array): Uint8Array {
     this.evadedCount++;
     const str = new TextDecoder().decode(request);
     const lines = str.split('\r\n');
-    const desynced = lines.map(line => {
+    const desynced = lines.map((line) => {
       if (line.toLowerCase().startsWith('host:')) {
         const parts = line.split(':');
         if (parts.length >= 2) {
@@ -50,20 +47,23 @@ export class OnDeviceDpiEvader {
 
     if (chunks.length > 1) {
       const temp = chunks[0];
-      chunks[0] = chunks[1];
-      chunks[1] = temp;
+      chunks[0] = chunks[1]!;
+      chunks[1] = temp!;
     }
     return chunks;
   }
 
   public craftTtlDecoyPair(
     realPayload: Uint8Array,
-    decoyTtl: number
-  ): { decoy: { ttl: number; payload: Uint8Array }; real: { ttl: number; payload: Uint8Array } } {
+    decoyTtl: number,
+  ): {
+    decoy: { ttl: number; payload: Uint8Array };
+    real: { ttl: number; payload: Uint8Array };
+  } {
     this.evadedCount++;
     const decoy = new Uint8Array(realPayload.length);
     for (let i = 0; i < realPayload.length; i++) {
-      decoy[i] = realPayload[i] ^ 0x55;
+      decoy[i] = realPayload[i]! ^ 0x55;
     }
     return {
       decoy: { ttl: decoyTtl, payload: decoy },

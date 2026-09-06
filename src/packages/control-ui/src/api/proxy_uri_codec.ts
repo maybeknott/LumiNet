@@ -23,14 +23,14 @@ export class ProxyUriCodec {
       let remark = '';
       if (rest.includes('#')) {
         const parts = rest.split('#');
-        rest = parts[0];
+        rest = parts[0]!;
         remark = parts[1] ?? '';
       }
 
       let query = '';
       if (rest.includes('?')) {
         const parts = rest.split('?');
-        rest = parts[0];
+        rest = parts[0]!;
         query = parts[1] ?? '';
       }
 
@@ -59,7 +59,9 @@ export class ProxyUriCodec {
 
   static serialize(node: CanonicalProxyNode): string {
     const keys = Object.keys(node.params).sort();
-    const qParts = keys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(node.params[k])}`);
+    const qParts = keys.map(
+      (k) => `${encodeURIComponent(k)}=${encodeURIComponent(node.params[k]!)}`,
+    );
     const qStr = qParts.length > 0 ? `?${qParts.join('&')}` : '';
     const rStr = node.remark ? `#${node.remark}` : '';
     return `${node.protocol}://${node.uuidOrPassword}@${node.address}:${node.port}${qStr}${rStr}`;

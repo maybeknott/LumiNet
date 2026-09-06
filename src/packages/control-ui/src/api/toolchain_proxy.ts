@@ -1,15 +1,21 @@
-export enum ToolchainTarget {
-  Git = 'git',
-  Pip = 'pip',
-  Npm = 'npm',
-  Gradle = 'gradle',
-  Curl = 'curl',
-  Docker = 'docker',
-  Env = 'env'
-}
+export const ToolchainTarget = {
+  Git: 'git',
+  Pip: 'pip',
+  Npm: 'npm',
+  Gradle: 'gradle',
+  Curl: 'curl',
+  Docker: 'docker',
+  Env: 'env',
+} as const;
+export type ToolchainTarget = (typeof ToolchainTarget)[keyof typeof ToolchainTarget];
 
 export class ToolchainProxyWrapper {
-  constructor(public httpProxy: string, public socks5Proxy: string) {}
+  public httpProxy: string;
+  public socks5Proxy: string;
+  constructor(httpProxy: string, socks5Proxy: string) {
+    this.httpProxy = httpProxy;
+    this.socks5Proxy = socks5Proxy;
+  }
 
   generateEnvVars(): Record<string, string> {
     return {
@@ -19,7 +25,7 @@ export class ToolchainProxyWrapper {
       HTTPS_PROXY: this.httpProxy,
       all_proxy: this.socks5Proxy,
       ALL_PROXY: this.socks5Proxy,
-      no_proxy: 'localhost,127.0.0.1,::1'
+      no_proxy: 'localhost,127.0.0.1,::1',
     };
   }
 

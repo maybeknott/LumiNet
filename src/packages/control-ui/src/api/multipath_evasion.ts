@@ -1,6 +1,7 @@
 import { BondingMode, MultipathTunnelManager, PathState } from './multipath_tunnel.js';
 import { PacketScrambler } from './packet_scrambler.js';
-import { CensorshipProfileSynthesizer, CensorshipRegion, RegionalEvasionProfile } from './profile_synthesizer.js';
+import { CensorshipProfileSynthesizer, CensorshipRegion } from './profile_synthesizer.js';
+import type { RegionalEvasionProfile } from './profile_synthesizer.js';
 
 export class MultipathEvasionPipeline {
   public tunnel: MultipathTunnelManager;
@@ -13,7 +14,7 @@ export class MultipathEvasionPipeline {
     mode: BondingMode,
     queueNum: number,
     mark: number,
-    region: CensorshipRegion
+    region: CensorshipRegion,
   ) {
     const synth = new CensorshipProfileSynthesizer();
     this.profile = synth.getProfile(region);
@@ -37,11 +38,14 @@ export class MultipathEvasionPipeline {
       txBytes: 0,
       rxBytes: 0,
       state: PathState.Active,
-      weight
+      weight,
     });
   }
 
-  prepareOutboundPacket(dest: string, payload: Uint8Array): { pathId: number; frame: Uint8Array } | null {
+  prepareOutboundPacket(
+    dest: string,
+    payload: Uint8Array,
+  ): { pathId: number; frame: Uint8Array } | null {
     this.totalProcessed++;
     this.scrambler.processIPPacket(dest, payload);
 

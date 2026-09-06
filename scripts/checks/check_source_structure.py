@@ -26,9 +26,10 @@ EXPECTED_ROOTS = {
     "src/apps/daemon", "src/apps/desktop", "src/apps/android",
     "src/packages/contracts",
     "src/packages/control-ui", "src/packages/lumicore",
+    "src/packages/lumicore-sdk",
 }
 EXPECTED_APP_DIRS = {"daemon", "desktop", "android"}
-EXPECTED_PACKAGE_DIRS = {"contracts", "control-ui", "lumicore"}
+EXPECTED_PACKAGE_DIRS = {"contracts", "control-ui", "lumicore", "lumicore-sdk"}
 IMPORT_RE = re.compile(r'"github\.com/maybeknott/luminet/internal/([^"/]+)(?:/([^"/]+))?')
 errors: list[str] = []
 

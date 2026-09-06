@@ -6,13 +6,23 @@ export interface CrawlSource {
   enabled: boolean;
 }
 
+interface NodeBufferShim {
+  Buffer?: {
+    from(input: string, encoding: string): { toString(encoding: string): string };
+  };
+}
+
+function nodeGlobalBuffer() {
+  return (globalThis as NodeBufferShim).Buffer;
+}
+
 function decodeBase64Safe(input: string): string {
   try {
     if (typeof atob === 'function') {
       return atob(input);
     }
-    const buf = (globalThis as any).Buffer;
-    if (buf && typeof buf.from === 'function') {
+    const buf = nodeGlobalBuffer();
+    if (buf) {
       return buf.from(input, 'base64').toString('utf-8');
     }
   } catch {

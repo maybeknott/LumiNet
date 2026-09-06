@@ -50,7 +50,7 @@ export class CovertStorageFramer {
   private static computeCrc8(data: Uint8Array): number {
     let crc = 0;
     for (let i = 0; i < data.length; i++) {
-      crc ^= data[i];
+      crc ^= data[i]!;
       for (let j = 0; j < 8; j++) {
         crc = (crc & 0x80) !== 0 ? (crc << 1) ^ 0x07 : crc << 1;
       }

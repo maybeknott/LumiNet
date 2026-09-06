@@ -1,9 +1,10 @@
-export enum QuicStreamType {
-  ClientBidirectional = 'ClientBidirectional',
-  ServerBidirectional = 'ServerBidirectional',
-  ClientUnidirectional = 'ClientUnidirectional',
-  ServerUnidirectional = 'ServerUnidirectional',
-}
+export const QuicStreamType = {
+  ClientBidirectional: 'ClientBidirectional',
+  ServerBidirectional: 'ServerBidirectional',
+  ClientUnidirectional: 'ClientUnidirectional',
+  ServerUnidirectional: 'ServerUnidirectional',
+} as const;
+export type QuicStreamType = (typeof QuicStreamType)[keyof typeof QuicStreamType];
 
 export interface QuicStreamFrame {
   streamId: number;

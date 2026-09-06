@@ -331,7 +331,10 @@ rust_transport_mod = read("src/packages/lumicore/src/transport/mod.rs")
 cargo = read("src/packages/lumicore/Cargo.toml")
 if "android_jni" in rust_ffi_mod:
     errors.append("obsolete Rust Android JNI remains in live module graph")
-if "pub mod tun2socks" in rust_transport_mod or "pub use tun2socks" in rust_transport_mod:
+# Match the placeholder module by exact identifier, not substring: the live
+# userspace NAT router is legitimately named tun2socks_router and must not
+# trip a check intended for a stub module literally named tun2socks.
+if re.search(r"\bpub mod tun2socks\b|\bpub use tun2socks\b", rust_transport_mod):
     errors.append("placeholder Rust tun2socks remains in live module graph")
 if re.search(r"^jni\s*=", cargo, re.M):
     errors.append("unused JNI crate remains an active Cargo dependency")

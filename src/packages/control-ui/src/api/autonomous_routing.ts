@@ -6,8 +6,9 @@ export class AutonomousRoutingCoordinator {
   public pac: PacScriptCompiler;
   public autoProxy: AutoProxyMatcher;
   public singbox: SingboxCompiler;
-
-  constructor(public defaultProxyNode: string = 'US-Primary') {
+  public defaultProxyNode: string;
+  constructor(defaultProxyNode: string = 'US-Primary') {
+    this.defaultProxyNode = defaultProxyNode;
     this.pac = new PacScriptCompiler(defaultProxyNode);
     this.autoProxy = new AutoProxyMatcher();
     this.singbox = new SingboxCompiler();

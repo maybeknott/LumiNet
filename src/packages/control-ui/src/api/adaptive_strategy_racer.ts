@@ -3,7 +3,7 @@
  * Originates from UAC-SNI-Spoofer-Windows-main and adapted for LumiNet Control UI.
  */
 
-import { locateSni, tlsRecordFrame, fixedChunks, splitAt, splitTlsRecord } from './multi_strategy_fragmenter';
+import { locateSni, fixedChunks, splitAt, splitTlsRecord } from './multi_strategy_fragmenter';
 
 export type ExtendedFragmentStrategy =
   | 'SNI_CHARS'
@@ -19,10 +19,7 @@ export type ExtendedFragmentStrategy =
   | 'RAW';
 
 export type StrategyResponseStatus =
-  | 'VALID'
-  | 'EMPTY_RESPONSE'
-  | 'ALERT_REJECTED'
-  | 'TRUNCATED_MALFORMED';
+  'VALID' | 'EMPTY_RESPONSE' | 'ALERT_REJECTED' | 'TRUNCATED_MALFORMED';
 
 export interface StrategyPlanEntry {
   strategy: ExtendedFragmentStrategy;
@@ -31,7 +28,9 @@ export interface StrategyPlanEntry {
 
 export type CarrierMode = 'MCI' | 'IRANCELL' | 'ADAPTIVE';
 
-export function validateStrategyResponse(response: Uint8Array | null | undefined): StrategyResponseStatus {
+export function validateStrategyResponse(
+  response: Uint8Array | null | undefined,
+): StrategyResponseStatus {
   if (!response || response.length === 0) {
     return 'EMPTY_RESPONSE';
   }
@@ -48,7 +47,7 @@ export function validateStrategyResponse(response: Uint8Array | null | undefined
 export function fragmentExtended(
   data: Uint8Array,
   strategy: ExtendedFragmentStrategy,
-  chunkSize: number = 64
+  chunkSize: number = 64,
 ): Uint8Array[] {
   if (data.length < 2) return [data.slice()];
   const location = locateSni(data);
@@ -126,14 +125,35 @@ export function buildDisposableFakeProbe(fakeSni: string): Uint8Array {
   const sniExtLen = 2 + 1 + 2 + hostBytes.length;
   pkt.push(0x00, 0x00, (sniExtLen >> 8) & 0xff, sniExtLen & 0xff);
   const listLen = 1 + 2 + hostBytes.length;
-  pkt.push((listLen >> 8) & 0xff, listLen & 0xff, 0x00, (hostBytes.length >> 8) & 0xff, hostBytes.length & 0xff);
+  pkt.push(
+    (listLen >> 8) & 0xff,
+    listLen & 0xff,
+    0x00,
+    (hostBytes.length >> 8) & 0xff,
+    hostBytes.length & 0xff,
+  );
   pkt.push(...hostBytes);
 
   // ALPN Extension (http/1.1, h2)
   pkt.push(
-    0x00, 0x10, 0x00, 0x0e, 0x00, 0x0c,
-    0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31, // http/1.1
-    0x02, 0x68, 0x32 // h2
+    0x00,
+    0x10,
+    0x00,
+    0x0e,
+    0x00,
+    0x0c,
+    0x08,
+    0x68,
+    0x74,
+    0x74,
+    0x70,
+    0x2f,
+    0x31,
+    0x2e,
+    0x31, // http/1.1
+    0x02,
+    0x68,
+    0x32, // h2
   );
 
   const extLen = pkt.length - extStart;
@@ -154,12 +174,18 @@ export function buildDisposableFakeProbe(fakeSni: string): Uint8Array {
 
 export class AdaptiveStrategyRacer {
   private preferredStrategies: Map<string, ExtendedFragmentStrategy> = new Map();
-
+  public carrierMode: CarrierMode;
+  public fakeSni: string;
+  public fakeProbeEnabled: boolean;
   constructor(
-    public carrierMode: CarrierMode = 'ADAPTIVE',
-    public fakeSni: string = 'www.speedtest.net',
-    public fakeProbeEnabled: boolean = true
-  ) {}
+    carrierMode: CarrierMode = 'ADAPTIVE',
+    fakeSni: string = 'www.speedtest.net',
+    fakeProbeEnabled: boolean = true,
+  ) {
+    this.carrierMode = carrierMode;
+    this.fakeSni = fakeSni;
+    this.fakeProbeEnabled = fakeProbeEnabled;
+  }
 
   planStrategies(host: string): StrategyPlanEntry[] {
     let base: StrategyPlanEntry[] = [];

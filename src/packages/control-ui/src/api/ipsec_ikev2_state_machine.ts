@@ -1,19 +1,21 @@
-export enum UiIkeState {
-  Init = 'INIT',
-  SaInitSent = 'SA_INIT_SENT',
-  SaInitRecv = 'SA_INIT_RECV',
-  AuthSent = 'AUTH_SENT',
-  Established = 'ESTABLISHED',
-  Closed = 'CLOSED',
-}
+export const UiIkeState = {
+  Init: 'INIT',
+  SaInitSent: 'SA_INIT_SENT',
+  SaInitRecv: 'SA_INIT_RECV',
+  AuthSent: 'AUTH_SENT',
+  Established: 'ESTABLISHED',
+  Closed: 'CLOSED',
+} as const;
+export type UiIkeState = (typeof UiIkeState)[keyof typeof UiIkeState];
 
 export class IpsecIkev2StateMachine {
   public state: UiIkeState = UiIkeState.Init;
   public initiatorSpi: Uint8Array = new Uint8Array(8);
   public responderSpi: Uint8Array = new Uint8Array(8);
   private messageId: number = 0;
-
-  constructor(public sharedSecret: Uint8Array) {
+  public sharedSecret: Uint8Array;
+  constructor(sharedSecret: Uint8Array) {
+    this.sharedSecret = sharedSecret;
     if (sharedSecret.length < 16) {
       throw new Error('Shared secret must be at least 16 bytes');
     }

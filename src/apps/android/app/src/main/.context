@@ -5,7 +5,7 @@ Android main source set. Resource subtrees are documented here but excluded from
 
 ## Contents
 - Direct files (1): `AndroidManifest.xml`
-- Child folders: `java/`.
+- Child folders: `assets/`, `java/`.
 - `res/` contains Android packaged resources and is intentionally excluded from nested `.context` files to avoid AAPT/resource side effects.
 
 ## Interfaces and dependencies

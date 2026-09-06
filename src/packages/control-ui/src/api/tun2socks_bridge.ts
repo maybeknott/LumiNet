@@ -39,6 +39,16 @@ export interface UdpGwFrameDto {
   payload: Uint8Array;
 }
 
+/** Parses an IPv6 address string into 16 bytes (full form only). */
+function parseIpv6(ip: string): Uint8Array {
+  const parts: number[] = [];
+  for (const group of ip.split(':')) {
+    const v = parseInt(group, 16) || 0;
+    parts.push((v >> 8) & 0xff, v & 0xff);
+  }
+  return new Uint8Array(parts);
+}
+
 /**
  * Encodes a UDP payload into BadVPN UDPGW wire frame format.
  */
@@ -69,7 +79,7 @@ export function decodeUdpGwFrame(buf: Uint8Array): UdpGwFrameDto {
   if (buf.length < 7) {
     throw new Error('UDPGW frame buffer too short');
   }
-  const flags = buf[0];
+  const flags = buf[0]!;
   const isV6 = (flags & UDPGW_CLIENT_FLAG_IPV6) !== 0;
   const ipLen = isV6 ? 16 : 4;
 
@@ -81,7 +91,7 @@ export function decodeUdpGwFrame(buf: Uint8Array): UdpGwFrameDto {
   const remoteIp = isV6 ? formatIpv6(ipBytes) : formatIpv4(ipBytes);
 
   const portOffset = 1 + ipLen;
-  const remotePort = (buf[portOffset] << 8) | buf[portOffset + 1];
+  const remotePort = (buf[portOffset]! << 8) | buf[portOffset + 1]!;
   const payload = buf.slice(portOffset + 2);
 
   return { flags, remoteIp, remotePort, payload };
@@ -99,16 +109,10 @@ function formatIpv4(octets: Uint8Array): string {
   return `${octets[0]}.${octets[1]}.${octets[2]}.${octets[3]}`;
 }
 
-function parseIpv6(ip: string): Uint8Array {
-  // Simplified fixed 16-byte representation
-  const out = new Uint8Array(16);
-  return out;
-}
-
 function formatIpv6(octets: Uint8Array): string {
   const groups: string[] = [];
   for (let i = 0; i < 16; i += 2) {
-    groups.push(((octets[i] << 8) | octets[i + 1]).toString(16));
+    groups.push(((octets[i]! << 8) | octets[i + 1]!).toString(16));
   }
   return groups.join(':');
 }

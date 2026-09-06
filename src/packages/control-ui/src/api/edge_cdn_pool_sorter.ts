@@ -7,8 +7,10 @@ export interface EdgeIpStatus {
 
 export class EdgeCdnPoolSorter {
   private ipPool = new Map<string, EdgeIpStatus>();
-
-  constructor(private maxLatencyThresholdMs: number = 300) {}
+  private maxLatencyThresholdMs: number;
+  constructor(maxLatencyThresholdMs: number = 300) {
+    this.maxLatencyThresholdMs = maxLatencyThresholdMs;
+  }
 
   addIp(ip: string): void {
     this.ipPool.set(ip, {

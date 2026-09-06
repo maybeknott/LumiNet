@@ -4,11 +4,11 @@
 export class AdaptiveMtuDiscovery {
   public currentProbe: number;
   public convergedMtu: number | null = null;
-
-  constructor(
-    private minMtu: number = 1280,
-    private maxMtu: number = 1500
-  ) {
+  private minMtu: number;
+  private maxMtu: number;
+  constructor(minMtu: number = 1280, maxMtu: number = 1500) {
+    this.minMtu = minMtu;
+    this.maxMtu = maxMtu;
     this.currentProbe = Math.floor((minMtu + maxMtu) / 2);
   }
 

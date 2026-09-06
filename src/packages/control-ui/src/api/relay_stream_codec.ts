@@ -34,7 +34,8 @@ export function decodeRelayV1(src: Uint8Array): {
 
   let crPos = -1;
   for (let i = 0; i < src.length; i++) {
-    if (src[i] === 0x0d) { // '\r'
+    if (src[i] === 0x0d) {
+      // '\r'
       crPos = i;
       break;
     }
@@ -122,8 +123,8 @@ export function decodeRelayV2(src: Uint8Array): {
     throw new Error(`Unknown network byte: ${netByte}`);
   }
 
-  const port = (src[3] << 8) | src[4];
-  const hostLen = src[5];
+  const port = (src[3]! << 8) | src[4]!;
+  const hostLen = src[5]!;
   const totalLen = 6 + hostLen;
 
   if (src.length < totalLen) {

@@ -2,11 +2,14 @@
  * HTTP Chunked Stream Carrier
  */
 export class HttpChunkCarrier {
-  constructor(
-    public host: string,
-    public path: string,
-    public sessionId: string
-  ) {}
+  public host: string;
+  public path: string;
+  public sessionId: string;
+  constructor(host: string, path: string, sessionId: string) {
+    this.host = host;
+    this.path = path;
+    this.sessionId = sessionId;
+  }
 
   createUplinkHeader(): string {
     return `POST ${this.path} HTTP/1.1\r\nHost: ${this.host}\r\nTransfer-Encoding: chunked\r\nContent-Type: application/octet-stream\r\nX-Session-ID: ${this.sessionId}\r\nConnection: keep-alive\r\n\r\n`;

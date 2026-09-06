@@ -8,11 +8,11 @@ WireGuard/WARP scanning, configuration, and runtime support used by proxy/API fl
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (6): `noise.go`, `warp.go`, `warp_export_test.go`, `warp_handshake.go`, `warp_scanner.go`, `warp_scanner_test.go`
+- Direct files (8): `noise.go`, `warp.go`, `warp_account.go`, `warp_account_test.go`, `warp_export_test.go`, `warp_handshake.go`, `warp_scanner.go`, `warp_scanner_test.go`
 
 ## Interfaces and dependencies
 - Go package: `warp`.
-- Notable exported surface: `CloudflareWarpPublicKey`, `EndpointResult`, `GenerateHiddifyConfig`, `GenerateSingBoxWireGuardConfig`, `GenerateV2RayWireGuardURL`, `GenerateWireGuardConfig`, `GenerateWireGuardKeyPair`, `IcmpPing`, `InjectNoise`, `NewWarpScanner` …
+- Notable exported surface: `CloudflareWarpPublicKey`, `EndpointResult`, `GenerateHiddifyConfig`, `GenerateSingBoxWireGuardConfig`, `GenerateV2RayWireGuardURL`, `GenerateWireGuardConfig`, `GenerateWireGuardKeyPair`, `IcmpPing`, `InjectNoise`, `NewWarpAccountClient` …
 - Daemon-local dependencies: `internal/foundation/remoteaction`.
 - Direct daemon callers: `internal/adapters/api`, `internal/adapters/mobilebind`.
 

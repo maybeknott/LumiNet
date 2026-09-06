@@ -1,9 +1,12 @@
 export class BrutalPacer {
-  constructor(
-    public targetBps: number,
-    public readonly minBps: number = 1_000_000,
-    public readonly maxBps: number = 100_000_000
-  ) {}
+  public targetBps: number;
+  public readonly minBps: number;
+  public readonly maxBps: number;
+  constructor(targetBps: number, minBps: number = 1000000, maxBps: number = 100000000) {
+    this.targetBps = targetBps;
+    this.minBps = minBps;
+    this.maxBps = maxBps;
+  }
 
   public updateAckFeedback(ackRateBps: number, lossRatio: number): number {
     const boundedLoss = Math.max(0.0, Math.min(1.0, lossRatio));
@@ -21,8 +24,10 @@ export class BrutalPacer {
 
 export class SalamanderObfuscator {
   private pos = 0;
-
-  constructor(private readonly key: Uint8Array) {}
+  private readonly key: Uint8Array;
+  constructor(key: Uint8Array) {
+    this.key = key;
+  }
 
   public applyInPlace(data: Uint8Array): void {
     const kLen = this.key.length;

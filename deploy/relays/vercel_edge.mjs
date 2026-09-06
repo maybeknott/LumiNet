@@ -8,6 +8,7 @@
 
 import {
   authorized,
+  hopCount,
   rejectHop,
   relayError,
   requestId,
@@ -32,6 +33,7 @@ export default async function handler(request) {
   if (loopError) {
     return loopError;
   }
+  const relayHop = String(hopCount(request.headers) + 1);
 
   // 3. Health check route
   const url = new URL(request.url);
@@ -57,6 +59,7 @@ export default async function handler(request) {
             "Content-Type": "application/octet-stream",
             "X-LumiNet-Session": frame.session_id,
             "X-LumiNet-Seq": String(frame.seq || 0),
+            "X-LumiNet-Relay-Hop": relayHop,
           },
           body: binaryData,
         });
@@ -86,7 +89,7 @@ export default async function handler(request) {
 
   const outboundUrl = new URL(url.pathname + url.search, `https://${targetHost}`);
   const headers = sanitizedHeaders(request.headers);
-  headers.set("x-luminet-relay-hop", "1");
+  headers.set("x-luminet-relay-hop", relayHop);
 
   try {
     const upstream = await fetch(outboundUrl.toString(), {

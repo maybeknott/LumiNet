@@ -1,10 +1,8 @@
-import {
-  HealthTier,
-  SubscriptionHealthClassifier,
-} from './subscription_health_classifier.js';
+import { HealthTier, SubscriptionHealthClassifier } from './subscription_health_classifier.js';
 import { NodePoolAggregator } from './node_pool_aggregator.js';
 import { SubscriptionCrawlerPipeline } from './subscription_crawler_pipeline.js';
-import { PacDiffSynchronizer, PacSyncDelta } from './pac_diff_synchronizer.js';
+import { PacDiffSynchronizer } from './pac_diff_synchronizer.js';
+import type { PacSyncDelta } from './pac_diff_synchronizer.js';
 import { PacRuleAction, PacRuleGenerator } from './pac_rule_generator.js';
 
 export interface OrchestratorSummary {
@@ -27,11 +25,7 @@ export class PacSubscriptionOrchestrator {
     this.defaultProxyPort = defaultProxyPort;
     this.pacGen = new PacRuleGenerator(PacRuleAction.Direct);
     for (const d of initialDomains) {
-      this.pacGen.addRule(
-        d,
-        PacRuleAction.Proxy,
-        `127.0.0.1:${defaultProxyPort}`
-      );
+      this.pacGen.addRule(d, PacRuleAction.Proxy, `127.0.0.1:${defaultProxyPort}`);
     }
 
     this.crawler = new SubscriptionCrawlerPipeline();
@@ -63,11 +57,7 @@ export class PacSubscriptionOrchestrator {
     // Rebuild pacGen
     this.pacGen = new PacRuleGenerator(PacRuleAction.Direct);
     for (const domain of upstreamDomains) {
-      this.pacGen.addRule(
-        domain,
-        PacRuleAction.Proxy,
-        `127.0.0.1:${this.defaultProxyPort}`
-      );
+      this.pacGen.addRule(domain, PacRuleAction.Proxy, `127.0.0.1:${this.defaultProxyPort}`);
     }
 
     return delta;

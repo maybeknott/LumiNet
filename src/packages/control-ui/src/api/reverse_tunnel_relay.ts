@@ -10,8 +10,10 @@ export interface UiReverseSession {
 export class ReverseTunnelRelay {
   private sessions: Map<number, UiReverseSession> = new Map();
   private nextId = 1;
-
-  constructor(private maxSessions: number = 100) {}
+  private maxSessions: number;
+  constructor(maxSessions: number = 100) {
+    this.maxSessions = maxSessions;
+  }
 
   openSession(remoteAddr: string, targetAddr: string): number | null {
     if (this.sessions.size >= this.maxSessions) return null;

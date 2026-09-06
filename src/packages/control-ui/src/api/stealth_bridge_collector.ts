@@ -9,7 +9,7 @@ export interface StealthBridge {
   params: Record<string, string>;
   score: number;
   latencyMs: number;
-  verified: Boolean;
+  verified: boolean;
 }
 
 export class StealthBridgeCollector {
@@ -29,14 +29,14 @@ export class StealthBridgeCollector {
     const parts = trimmed.split(/\s+/);
     if (parts.length < 3) throw new Error('Insufficient tokens in bridge line');
 
-    const proto = parts[0].toLowerCase();
+    const proto = parts[0]!.toLowerCase();
     const transport: PluggableTransportType =
       proto === 'obfs4' || proto === 'snowflake' || proto === 'webtunnel' || proto === 'meek'
         ? (proto as PluggableTransportType)
         : 'custom';
 
     const endpoint = parts[1];
-    const fingerprint = parts[2].toUpperCase();
+    const fingerprint = parts[2]!.toUpperCase();
 
     const params: Record<string, string> = {};
     for (const token of parts.slice(3)) {
@@ -48,7 +48,7 @@ export class StealthBridgeCollector {
 
     const bridge: StealthBridge = {
       transport,
-      endpoint,
+      endpoint: endpoint!,
       fingerprint,
       params,
       score: 1.0,
@@ -78,7 +78,7 @@ export class StealthBridgeCollector {
 
   public getBestBridges(transport?: PluggableTransportType, limit: number = 5): StealthBridge[] {
     return Array.from(this.bridges.values())
-      .filter(b => (!transport || b.transport === transport) && b.score >= this.minScoreThreshold)
+      .filter((b) => (!transport || b.transport === transport) && b.score >= this.minScoreThreshold)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   }

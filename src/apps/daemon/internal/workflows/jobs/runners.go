@@ -427,8 +427,8 @@ func (m *JobManager) runStreamScan(ctx context.Context, job *Job) (interface{}, 
 			}
 			switch evt.Type {
 			case bridge.StreamEvtProbeResult:
-				var probe bridge.StreamProbeResultData
-				if err := json.Unmarshal(evt.Data, &probe); err == nil {
+				probe, err := bridge.ParseStreamProbeResult(evt.Data)
+				if err == nil {
 					collectedResults = append(collectedResults, probe)
 					m.Broadcaster().Publish(JobEvent{
 						JobID:     job.ID,
@@ -438,8 +438,8 @@ func (m *JobManager) runStreamScan(ctx context.Context, job *Job) (interface{}, 
 					})
 				}
 			case bridge.StreamEvtPoolUpdate:
-				var prog bridge.StreamProgressData
-				if err := json.Unmarshal(evt.Data, &prog); err == nil {
+				prog, err := bridge.ParseStreamProgress(evt.Data)
+				if err == nil {
 					_ = m.UpdateProgress(job.ID, int(prog.Percent))
 					m.Broadcaster().Publish(JobEvent{
 						JobID:     job.ID,

@@ -4,15 +4,15 @@ export class RawPacketCarrierUI {
   static computeChecksum(payload: Uint8Array): number {
     let sum = 0;
     for (let i = 0; i < payload.length - 1; i += 2) {
-      sum += (payload[i] << 8) | payload[i + 1];
+      sum += (payload[i]! << 8) | payload[i + 1]!;
     }
     if (payload.length % 2 === 1) {
-      sum += payload[payload.length - 1] << 8;
+      sum += payload[payload.length - 1]! << 8;
     }
     while (sum > 0xffff) {
       sum = (sum & 0xffff) + (sum >>> 16);
     }
-    return (~sum) & 0xffff;
+    return ~sum & 0xffff;
   }
 
   static frame(seq: number, sessionId: number, payload: Uint8Array): Uint8Array {

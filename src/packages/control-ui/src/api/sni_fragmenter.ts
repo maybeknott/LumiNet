@@ -37,9 +37,7 @@ export class SniFragmenter {
   /**
    * Locates the SNI extension boundaries inside a TLS ClientHello packet.
    */
-  public static locateSni(
-    packet: Uint8Array
-  ): { start: number; end: number; sni: string } | null {
+  public static locateSni(packet: Uint8Array): { start: number; end: number; sni: string } | null {
     if (packet.length < 5 + 4 + 2 + 32 + 1) {
       return null;
     }
@@ -49,7 +47,7 @@ export class SniFragmenter {
       return null;
     }
 
-    const recordLen = (packet[3] << 8) | packet[4];
+    const recordLen = (packet[3]! << 8) | packet[4]!;
     if (packet.length < 5 + recordLen) {
       return null;
     }
@@ -61,7 +59,7 @@ export class SniFragmenter {
     }
 
     const handshakeLen =
-      (packet[offset + 1] << 16) | (packet[offset + 2] << 8) | packet[offset + 3];
+      (packet[offset + 1]! << 16) | (packet[offset + 2]! << 8) | packet[offset + 3]!;
     if (packet.length < offset + 4 + handshakeLen) {
       return null;
     }
@@ -74,7 +72,7 @@ export class SniFragmenter {
     offset += 2 + 32;
 
     // Session ID
-    const sessionIdLen = packet[offset];
+    const sessionIdLen = packet[offset]!;
     offset += 1;
     if (packet.length < offset + sessionIdLen + 2) {
       return null;
@@ -82,7 +80,7 @@ export class SniFragmenter {
     offset += sessionIdLen;
 
     // Cipher Suites
-    const cipherSuitesLen = (packet[offset] << 8) | packet[offset + 1];
+    const cipherSuitesLen = (packet[offset]! << 8) | packet[offset + 1]!;
     offset += 2;
     if (packet.length < offset + cipherSuitesLen + 1) {
       return null;
@@ -90,7 +88,7 @@ export class SniFragmenter {
     offset += cipherSuitesLen;
 
     // Compression Methods
-    const compressionLen = packet[offset];
+    const compressionLen = packet[offset]!;
     offset += 1;
     if (packet.length < offset + compressionLen + 2) {
       return null;
@@ -98,7 +96,7 @@ export class SniFragmenter {
     offset += compressionLen;
 
     // Extensions
-    const extensionsLen = (packet[offset] << 8) | packet[offset + 1];
+    const extensionsLen = (packet[offset]! << 8) | packet[offset + 1]!;
     offset += 2;
     const extensionsEnd = offset + extensionsLen;
     if (packet.length < extensionsEnd) {
@@ -106,8 +104,8 @@ export class SniFragmenter {
     }
 
     while (offset + 4 <= extensionsEnd) {
-      const extType = (packet[offset] << 8) | packet[offset + 1];
-      const extLen = (packet[offset + 2] << 8) | packet[offset + 3];
+      const extType = (packet[offset]! << 8) | packet[offset + 1]!;
+      const extLen = (packet[offset + 2]! << 8) | packet[offset + 3]!;
       offset += 4;
 
       if (offset + extLen > extensionsEnd) {
@@ -117,13 +115,13 @@ export class SniFragmenter {
       if (extType === 0x0000) {
         // Server Name Indication
         if (extLen < 5) return null;
-        const listLen = (packet[offset] << 8) | packet[offset + 1];
+        const listLen = (packet[offset]! << 8) | packet[offset + 1]!;
         let listOff = offset + 2;
         const listEnd = offset + 2 + listLen;
 
         while (listOff + 3 <= listEnd) {
           const nameType = packet[listOff];
-          const nameLen = (packet[listOff + 1] << 8) | packet[listOff + 2];
+          const nameLen = (packet[listOff + 1]! << 8) | packet[listOff + 2]!;
           listOff += 3;
 
           if (listOff + nameLen > listEnd) {
@@ -155,7 +153,7 @@ export class SniFragmenter {
    */
   public static planFragments(
     packet: Uint8Array,
-    config: SniFragmentConfig = defaultSniFragmentConfig()
+    config: SniFragmentConfig = defaultSniFragmentConfig(),
   ): SniFragmentPlan {
     const sniLoc = this.locateSni(packet);
     if (!sniLoc || sniLoc.end <= sniLoc.start) {
@@ -180,7 +178,7 @@ export class SniFragmenter {
       config.beforeSniRange,
       config.delayMsRange,
       'before_sni',
-      slices
+      slices,
     );
 
     // Zone 1: SNI Hostname
@@ -189,7 +187,7 @@ export class SniFragmenter {
       config.sniRange,
       config.delayMsRange,
       'sni',
-      slices
+      slices,
     );
 
     // Zone 2: After SNI
@@ -198,7 +196,7 @@ export class SniFragmenter {
       config.afterSniRange,
       config.delayMsRange,
       'after_sni',
-      slices
+      slices,
     );
 
     const totalBytes = slices.reduce((acc, cur) => acc + cur.payload.length, 0);
@@ -215,7 +213,7 @@ export class SniFragmenter {
     range: [number, number],
     delayRange: [number, number],
     zone: 'before_sni' | 'sni' | 'after_sni',
-    out: FragmentSlice[]
+    out: FragmentSlice[],
   ): void {
     if (data.length === 0) return;
 
@@ -253,7 +251,7 @@ export class SniFragmenter {
    * Simulates timed packet transmission through the fragment plan.
    */
   public static async simulateFragmentTransmission(
-    plan: SniFragmentPlan
+    plan: SniFragmentPlan,
   ): Promise<{ sentSlices: number; totalBytes: number; durationMs: number }> {
     let sentSlices = 0;
     let totalBytes = 0;

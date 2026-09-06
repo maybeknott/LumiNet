@@ -1,11 +1,12 @@
-export enum MpFrameType {
-  HELLO = 0x01,
-  HELLO_ACK = 0x02,
-  DATA = 0x03,
-  CLOSE = 0x04,
-  PING = 0x05,
-  PONG = 0x06,
-}
+export const MpFrameType = {
+  HELLO: 1,
+  HELLO_ACK: 2,
+  DATA: 3,
+  CLOSE: 4,
+  PING: 5,
+  PONG: 6,
+} as const;
+export type MpFrameType = (typeof MpFrameType)[keyof typeof MpFrameType];
 
 export const MP_HEADER_LEN = 29; // 1 + 16 + 8 + 4
 
@@ -18,7 +19,7 @@ export interface MpFrame {
 
 export function encodeMpFrame(frame: MpFrame): Uint8Array {
   if (frame.sessionId.length !== 16) {
-    throw new Error("Session ID must be exactly 16 bytes");
+    throw new Error('Session ID must be exactly 16 bytes');
   }
   const totalLen = MP_HEADER_LEN + frame.payload.length;
   const out = new Uint8Array(totalLen);
@@ -35,7 +36,7 @@ export function encodeMpFrame(frame: MpFrame): Uint8Array {
 
 export function decodeMpFrame(data: Uint8Array): MpFrame {
   if (data.length < MP_HEADER_LEN) {
-    throw new Error("Buffer too short for multipath frame header");
+    throw new Error('Buffer too short for multipath frame header');
   }
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const type = data[0] as MpFrameType;
@@ -44,7 +45,7 @@ export function decodeMpFrame(data: Uint8Array): MpFrame {
   const payloadLen = view.getUint32(25, false);
 
   if (data.length < MP_HEADER_LEN + payloadLen) {
-    throw new Error("Incomplete payload in multipath frame");
+    throw new Error('Incomplete payload in multipath frame');
   }
   const payload = data.slice(MP_HEADER_LEN, MP_HEADER_LEN + payloadLen);
 
@@ -71,7 +72,7 @@ export class InOrderDedupBuffer {
       return [];
     }
     if (this.pending.size >= this.capacity) {
-      throw new Error("Dedup buffer capacity reached");
+      throw new Error('Dedup buffer capacity reached');
     }
 
     this.pending.set(seq.toString(), payload);

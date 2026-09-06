@@ -1,9 +1,10 @@
-export enum UiClientProtocol {
-  AmneziaWg = 'amnezia_wg',
-  Vless = 'vless',
-  Shadowsocks2022 = 'shadowsocks_2022',
-  Masque = 'masque',
-}
+export const UiClientProtocol = {
+  AmneziaWg: 'amnezia_wg',
+  Vless: 'vless',
+  Shadowsocks2022: 'shadowsocks_2022',
+  Masque: 'masque',
+} as const;
+export type UiClientProtocol = (typeof UiClientProtocol)[keyof typeof UiClientProtocol];
 
 export interface UiClientProfile {
   profileId: string;
@@ -50,7 +51,7 @@ export class ProtocolProfileOrchestrator {
       this.profiles.set(p.profileId, p);
     }
     if (!this.activeProfileId && list.length > 0) {
-      this.activeProfileId = list[0].profileId;
+      this.activeProfileId = list[0]!.profileId;
     }
   }
 

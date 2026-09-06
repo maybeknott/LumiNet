@@ -7,8 +7,12 @@ export interface ProbeResponse {
 export class EmbeddedProbeServer {
   private authHeader: string | null = null;
   private payloads: Map<string, Uint8Array> = new Map();
-
-  constructor(public host: string, public port: number) {}
+  public host: string;
+  public port: number;
+  constructor(host: string, port: number) {
+    this.host = host;
+    this.port = port;
+  }
 
   setAuth(user: string, pass: string): void {
     this.authHeader = `Basic ${user}:${pass}`;
@@ -26,7 +30,7 @@ export class EmbeddedProbeServer {
       return {
         statusCode: 401,
         headers,
-        body: new TextEncoder().encode('Unauthorized')
+        body: new TextEncoder().encode('Unauthorized'),
       };
     }
 
@@ -35,7 +39,7 @@ export class EmbeddedProbeServer {
       return {
         statusCode: 200,
         headers,
-        body: new TextEncoder().encode('OK')
+        body: new TextEncoder().encode('OK'),
       };
     }
 
@@ -45,8 +49,8 @@ export class EmbeddedProbeServer {
       if (range && range.startsWith('bytes=')) {
         const parts = range.replace('bytes=', '').split('-');
         if (parts.length === 2) {
-          const start = parseInt(parts[0], 10) || 0;
-          const end = Math.min(parseInt(parts[1], 10) || payload.length - 1, payload.length - 1);
+          const start = parseInt(parts[0]!, 10) || 0;
+          const end = Math.min(parseInt(parts[1]!, 10) || payload.length - 1, payload.length - 1);
           if (start <= end && start < payload.length) {
             const slice = payload.slice(start, end + 1);
             headers['Content-Range'] = `bytes ${start}-${end}/${payload.length}`;
@@ -63,7 +67,7 @@ export class EmbeddedProbeServer {
     return {
       statusCode: 404,
       headers,
-      body: new TextEncoder().encode('Not Found')
+      body: new TextEncoder().encode('Not Found'),
     };
   }
 }

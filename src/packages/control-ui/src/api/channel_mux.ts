@@ -1,9 +1,10 @@
-export enum ChannelOpcode {
-  Open = 1,
-  Data = 2,
-  Close = 3,
-  Ack = 4
-}
+export const ChannelOpcode = {
+  Open: 1,
+  Data: 2,
+  Close: 3,
+  Ack: 4,
+} as const;
+export type ChannelOpcode = (typeof ChannelOpcode)[keyof typeof ChannelOpcode];
 
 export interface ChannelMuxFrame {
   channelId: number;
@@ -32,7 +33,7 @@ export class ChannelMuxCodec {
     return {
       channelId,
       opcode,
-      payload: data.slice(7, 7 + len)
+      payload: data.slice(7, 7 + len),
     };
   }
 }

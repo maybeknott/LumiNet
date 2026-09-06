@@ -1,11 +1,12 @@
-export enum QuicConnectionState {
-  Idle = 'Idle',
-  Initial = 'Initial',
-  Handshaking = 'Handshaking',
-  Established = 'Established',
-  Closing = 'Closing',
-  Closed = 'Closed',
-}
+export const QuicConnectionState = {
+  Idle: 'Idle',
+  Initial: 'Initial',
+  Handshaking: 'Handshaking',
+  Established: 'Established',
+  Closing: 'Closing',
+  Closed: 'Closed',
+} as const;
+export type QuicConnectionState = (typeof QuicConnectionState)[keyof typeof QuicConnectionState];
 
 export interface QuicConnectionMetrics {
   state: QuicConnectionState;

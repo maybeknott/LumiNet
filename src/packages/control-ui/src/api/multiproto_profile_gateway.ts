@@ -1,6 +1,7 @@
 import { UiClientProtocol } from './protocol_profile_orchestrator.js';
 import { OvpnConfigTranspiler } from './ovpn_config_transpiler.js';
-import { PublicRelayAggregator, UiRelayNode } from './public_relay_aggregator.js';
+import { PublicRelayAggregator } from './public_relay_aggregator.js';
+import type { UiRelayNode } from './public_relay_aggregator.js';
 
 export interface UiGatewayEndpoint {
   endpointId: string;
@@ -41,7 +42,7 @@ export class MultiprotoProfileGateway {
   importRelays(relays: UiRelayNode[]): void {
     for (const r of relays) {
       this.relayAggregator.ingestNode(r);
-      let proto = UiClientProtocol.Masque;
+      let proto: UiClientProtocol = UiClientProtocol.Masque;
       const lower = r.protocol.toLowerCase();
       if (lower === 'shadowsocks') {
         proto = UiClientProtocol.Shadowsocks2022;

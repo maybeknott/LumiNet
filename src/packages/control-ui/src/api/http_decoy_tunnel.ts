@@ -24,13 +24,7 @@ export interface DecoyTunnelConfig {
 export function defaultDecoyTunnelConfig(): DecoyTunnelConfig {
   return {
     token: 'af445adb-2434-4975-9445-2c1b2231',
-    fakeUrls: [
-      'nipo.ciron.net',
-      'sudoer.ir',
-      'sudoer.net',
-      'google.com',
-      'cloudflare.com',
-    ],
+    fakeUrls: ['nipo.ciron.net', 'sudoer.ir', 'sudoer.net', 'google.com', 'cloudflare.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     endpoints: ['api', 'login', 'user', 'update'],
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0',
@@ -96,25 +90,25 @@ export function cleanHostHeader(fakeUrl: string): string {
 export function selectFakeUrl(config: DecoyTunnelConfig, seed: number): string {
   if (!config.fakeUrls.length) return 'cloudflare.com';
   const idx = Math.abs(seed) % config.fakeUrls.length;
-  return config.fakeUrls[idx];
+  return config.fakeUrls[idx]!;
 }
 
 export function selectMethod(config: DecoyTunnelConfig, seed: number): string {
   if (!config.methods.length) return 'POST';
   const idx = Math.abs(seed) % config.methods.length;
-  return config.methods[idx];
+  return config.methods[idx]!;
 }
 
 export function selectEndpoint(config: DecoyTunnelConfig, seed: number): string {
   if (!config.endpoints.length) return 'api';
   const idx = Math.abs(seed) % config.endpoints.length;
-  return config.endpoints[idx];
+  return config.endpoints[idx]!;
 }
 
 export function bytesToHex(bytes: Uint8Array): string {
   let hex = '';
   for (let i = 0; i < bytes.length; i++) {
-    hex += bytes[i].toString(16).padStart(2, '0');
+    hex += bytes[i]!.toString(16).padStart(2, '0');
   }
   return hex;
 }
@@ -135,7 +129,7 @@ export function hexToBytes(hex: string): Uint8Array {
 export function base64Encode(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+    binary += String.fromCharCode(bytes[i]!);
   }
   return btoa(binary);
 }
@@ -157,7 +151,7 @@ export function formatDecoyAgentRequest(
   sessionId: string,
   action: DecoyAction,
   b64Body: string,
-  seed = 0
+  seed = 0,
 ): string {
   const fakeUrl = selectFakeUrl(config, seed);
   const hostHeader = cleanHostHeader(fakeUrl);
@@ -204,7 +198,7 @@ export function parseDecoyServerRequest(rawHttp: string): DecoyHttpRequest {
 
   const method = reqParts[0];
   const path = reqParts[1];
-  const version = reqParts[2].replace('HTTP/', '');
+  const version = reqParts[2]!.replace('HTTP/', '');
 
   const headers: Record<string, string> = {};
   let host = '';
@@ -216,10 +210,10 @@ export function parseDecoyServerRequest(rawHttp: string): DecoyHttpRequest {
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    const colonIdx = line.indexOf(':');
+    const colonIdx = line!.indexOf(':');
     if (colonIdx !== -1) {
-      const name = line.substring(0, colonIdx).trim().toLowerCase();
-      const val = line.substring(colonIdx + 1).trim();
+      const name = line!.substring(0, colonIdx).trim().toLowerCase();
+      const val = line!.substring(colonIdx + 1).trim();
       headers[name] = val;
 
       switch (name) {
@@ -245,13 +239,14 @@ export function parseDecoyServerRequest(rawHttp: string): DecoyHttpRequest {
     }
   }
 
-  const actualBody = contentLength > 0 && bodyPart.length > contentLength
-    ? bodyPart.substring(0, contentLength)
-    : bodyPart;
+  const actualBody =
+    contentLength > 0 && bodyPart.length > contentLength
+      ? bodyPart.substring(0, contentLength)
+      : bodyPart;
 
   return {
-    method,
-    path,
+    method: method!,
+    path: path!,
     version,
     host,
     userAgent,
@@ -286,8 +281,8 @@ export function parseDecoyAgentResponse(rawHttp: string): DecoyHttpResponse {
     throw new Error(`Invalid HTTP status line: ${lines[0]}`);
   }
 
-  const version = statusParts[0].replace('HTTP/', '');
-  const statusCode = parseInt(statusParts[1], 10) || 200;
+  const version = statusParts[0]!.replace('HTTP/', '');
+  const statusCode = parseInt(statusParts[1]!, 10) || 200;
   const statusText = statusParts.slice(2).join(' ') || 'OK';
 
   const headers: Record<string, string> = {};
@@ -296,10 +291,10 @@ export function parseDecoyAgentResponse(rawHttp: string): DecoyHttpResponse {
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    const colonIdx = line.indexOf(':');
+    const colonIdx = line!.indexOf(':');
     if (colonIdx !== -1) {
-      const name = line.substring(0, colonIdx).trim().toLowerCase();
-      const val = line.substring(colonIdx + 1).trim();
+      const name = line!.substring(0, colonIdx).trim().toLowerCase();
+      const val = line!.substring(colonIdx + 1).trim();
       headers[name] = val;
 
       switch (name) {
@@ -313,9 +308,10 @@ export function parseDecoyAgentResponse(rawHttp: string): DecoyHttpResponse {
     }
   }
 
-  const actualBody = contentLength > 0 && bodyPart.length > contentLength
-    ? bodyPart.substring(0, contentLength)
-    : bodyPart;
+  const actualBody =
+    contentLength > 0 && bodyPart.length > contentLength
+      ? bodyPart.substring(0, contentLength)
+      : bodyPart;
 
   return {
     version,

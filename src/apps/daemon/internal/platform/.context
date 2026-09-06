@@ -9,7 +9,7 @@ Host-OS implementation. Owns host-network mutations, process integration, and mo
 
 ## Contents
 - No direct source files; this folder is a namespace/organization node for child modules.
-- Child folders: `mobilehost/`, `process/`, `sshtrust/`, `system/`.
+- Child folders: `mobilehost/`, `process/`, `security/`, `sshtrust/`, `system/`.
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

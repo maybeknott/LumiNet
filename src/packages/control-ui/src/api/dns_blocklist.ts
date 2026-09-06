@@ -1,11 +1,12 @@
-export enum BlockCategory {
-  Malware = 'malware',
-  Advertising = 'advertising',
-  Tracking = 'tracking',
-  Cryptomining = 'cryptomining',
-  Adult = 'adult',
-  Telemetry = 'telemetry'
-}
+export const BlockCategory = {
+  Malware: 'malware',
+  Advertising: 'advertising',
+  Tracking: 'tracking',
+  Cryptomining: 'cryptomining',
+  Adult: 'adult',
+  Telemetry: 'telemetry',
+} as const;
+export type BlockCategory = (typeof BlockCategory)[keyof typeof BlockCategory];
 
 export class DnsBlocklistEngine {
   private exactRules: Map<string, BlockCategory> = new Map();

@@ -4,7 +4,7 @@
 Native censorship/evasion algorithms that are actually reachable from the crate graph.
 
 ## Contents
-- Direct files (24): `client_ip_obfuscator.rs`, `cloak_obfs.rs`, `desync.rs`, `detect.rs`, `ech_plugin.rs`, `ev_evasion.rs`, `fingerprint.rs`, `fragment.rs`, `http_tricks.rs`, `mod.rs`, `noise.rs`, `packet_header.rs` …
+- Direct files (60): `adaptive_strategy_racer.rs`, `amnezia_obfs_parameters.rs`, `amneziawg_shaper.rs`, `autonomous_evasion_orchestrator.rs`, `censorship_profile_synthesizer.rs`, `censorship_trigger_generator.rs`, `client_ip_obfuscator.rs`, `cloak_obfs.rs`, `combined_bypass_evaluator.rs`, `covert_storage_framer.rs`, `desync.rs`, `detect.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

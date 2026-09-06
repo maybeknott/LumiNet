@@ -1,8 +1,10 @@
 export class PrivoxyActionGenerator {
   private forwardDomains: Set<string> = new Set();
   private bypassDomains: Set<string> = new Set();
-
-  constructor(public socks5Proxy: string) {}
+  public socks5Proxy: string;
+  constructor(socks5Proxy: string) {
+    this.socks5Proxy = socks5Proxy;
+  }
 
   addForwardDomain(domain: string): void {
     const clean = domain.trim().replace(/\.$/, '').toLowerCase();

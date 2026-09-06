@@ -10,11 +10,12 @@ export interface WireguardPeerRecord {
 export class WireguardIpam {
   private nextHostId = 2;
   private readonly peers = new Map<string, WireguardPeerRecord>();
-
-  constructor(
-    private readonly v4BasePrefix: string = '10.88.0.',
-    private readonly v6BasePrefix: string = 'fd00:88::'
-  ) {}
+  private readonly v4BasePrefix: string;
+  private readonly v6BasePrefix: string;
+  constructor(v4BasePrefix: string = '10.88.0.', v6BasePrefix: string = 'fd00:88::') {
+    this.v4BasePrefix = v4BasePrefix;
+    this.v6BasePrefix = v6BasePrefix;
+  }
 
   public allocatePeer(publicKey: string, name: string): WireguardPeerRecord {
     const existing = this.peers.get(publicKey);
@@ -30,7 +31,7 @@ export class WireguardIpam {
       allocatedV4: v4,
       allocatedV6: v6,
       name,
-      enabled: true
+      enabled: true,
     };
     this.peers.set(publicKey, record);
     return record;
@@ -41,19 +42,19 @@ export class WireguardIpam {
     clientPrivKey: string,
     endpoint: string,
     serverPubKey: string,
-    dns = '1.1.1.1'
+    dns = '1.1.1.1',
   ): string {
     return `[Interface]
-PrivateKey = ${clientPrivKey}
-Address = ${rec.allocatedV4}/32, ${rec.allocatedV6}/128
-DNS = ${dns}
+    PrivateKey = ${clientPrivKey}
+    Address = ${rec.allocatedV4}/32, ${rec.allocatedV6}/128
+    DNS = ${dns}
 
-[Peer]
-PublicKey = ${serverPubKey}
-PresharedKey = ${rec.presharedKey}
-Endpoint = ${endpoint}
-AllowedIPs = 0.0.0.0/0, ::/0
-PersistentKeepalive = 25
-`;
+    [Peer]
+    PublicKey = ${serverPubKey}
+    PresharedKey = ${rec.presharedKey}
+    Endpoint = ${endpoint}
+    AllowedIPs = 0.0.0.0/0, ::/0
+    PersistentKeepalive = 25
+    `;
   }
 }

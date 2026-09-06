@@ -12,13 +12,21 @@ interface ClientRecord {
 
 export class ClientBanSupervisor {
   private clients: Map<string, ClientRecord> = new Map();
-
+  public maxFailures: number;
+  public banDurationSecs: number;
+  public bucketCapacity: number;
+  public refillRatePerSec: number;
   constructor(
-    public maxFailures: number = 5,
-    public banDurationSecs: number = 300,
-    public bucketCapacity: number = 10.0,
-    public refillRatePerSec: number = 1.0
-  ) {}
+    maxFailures: number = 5,
+    banDurationSecs: number = 300,
+    bucketCapacity: number = 10.0,
+    refillRatePerSec: number = 1.0,
+  ) {
+    this.maxFailures = maxFailures;
+    this.banDurationSecs = banDurationSecs;
+    this.bucketCapacity = bucketCapacity;
+    this.refillRatePerSec = refillRatePerSec;
+  }
 
   checkAccess(ip: string, nowUnix: number): { decision: AccessDecision; remainingSecs: number } {
     let rec = this.clients.get(ip);
@@ -33,7 +41,10 @@ export class ClientBanSupervisor {
     }
 
     if (rec.bannedUntilUnix > nowUnix) {
-      return { decision: 'Banned', remainingSecs: rec.bannedUntilUnix - nowUnix };
+      return {
+        decision: 'Banned',
+        remainingSecs: rec.bannedUntilUnix - nowUnix,
+      };
     }
 
     const elapsed = Math.max(0, nowUnix - rec.lastAccessUnix);

@@ -8,9 +8,18 @@ export interface ProxyFilterHook {
 }
 
 export class HeaderInjectorHook implements ProxyFilterHook {
-  constructor(private headerName: string, private headerValue: string) {}
+  private headerName: string;
+  private headerValue: string;
+  constructor(headerName: string, headerValue: string) {
+    this.headerName = headerName;
+    this.headerValue = headerValue;
+  }
 
-  onRequest(method: string, path: string, headers: Array<[string, string]>): PipelineVerdictType {
+  onRequest(
+    _method: string,
+    _path: string,
+    _headers: Array<[string, string]>,
+  ): PipelineVerdictType {
     return {
       type: 'ModifyHeaders',
       headers: [[this.headerName, this.headerValue]],
@@ -19,9 +28,12 @@ export class HeaderInjectorHook implements ProxyFilterHook {
 }
 
 export class BlockPathHook implements ProxyFilterHook {
-  constructor(private blockedPrefix: string) {}
+  private blockedPrefix: string;
+  constructor(blockedPrefix: string) {
+    this.blockedPrefix = blockedPrefix;
+  }
 
-  onRequest(method: string, path: string, headers: Array<[string, string]>): PipelineVerdictType {
+  onRequest(_method: string, path: string, _headers: Array<[string, string]>): PipelineVerdictType {
     if (path.startsWith(this.blockedPrefix)) {
       return {
         type: 'ShortCircuit',
@@ -43,7 +55,7 @@ export class ProgrammableProxyPipeline {
   processRequest(
     method: string,
     path: string,
-    headers: Array<[string, string]>
+    headers: Array<[string, string]>,
   ): { statusCode: number; body?: Uint8Array } {
     for (const hook of this.hooks) {
       const verdict = hook.onRequest(method, path, headers);

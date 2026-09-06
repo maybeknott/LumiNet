@@ -1,5 +1,8 @@
 export class PppTlsTunnelCodec {
-  constructor(public enableHdlc: boolean = true) {}
+  public enableHdlc: boolean;
+  constructor(enableHdlc: boolean = true) {
+    this.enableHdlc = enableHdlc;
+  }
 
   encodeFrame(proto: number, payload: Uint8Array): Uint8Array {
     const hdlcLen = this.enableHdlc ? 2 : 0;

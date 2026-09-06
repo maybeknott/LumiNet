@@ -16,20 +16,32 @@ export class EdgeWorkerSelector {
     return ep.latencyMs + ep.packetLossPct * 150.0;
   }
 
-  addOrUpdate(domain: string, cleanIp: string, port: number, latencyMs: number, loss: number): void {
+  addOrUpdate(
+    domain: string,
+    cleanIp: string,
+    port: number,
+    latencyMs: number,
+    loss: number,
+  ): void {
     const found = this.endpoints.find((e) => e.domain === domain && e.cleanIp === cleanIp);
     if (found) {
       found.latencyMs = latencyMs;
       found.packetLossPct = loss;
       found.port = port;
     } else {
-      this.endpoints.push({ domain, cleanIp, port, latencyMs, packetLossPct: loss });
+      this.endpoints.push({
+        domain,
+        cleanIp,
+        port,
+        latencyMs,
+        packetLossPct: loss,
+      });
     }
   }
 
   selectBest(): WorkerEndpoint | null {
     if (this.endpoints.length === 0) return null;
-    return [...this.endpoints].sort((a, b) => this.score(a) - this.score(b))[0];
+    return [...this.endpoints].sort((a, b) => this.score(a) - this.score(b))[0]!;
   }
 
   synthesizeVlessUri(ep: WorkerEndpoint, uuid: string, sni: string): string {

@@ -50,7 +50,9 @@ export function sanitizedHeaders(input) {
 
 export function authorized(request, env, allowQuery = true) {
   const expected = env.RELAY_AUTH_KEY || env.AUTH_KEY || "";
-  if (!expected) return true;
+  // Fail closed: an unconfigured relay must refuse tunneling traffic instead
+  // of operating as an open proxy. Operators must set RELAY_AUTH_KEY.
+  if (!expected) return false;
   const bearer = request.headers.get("authorization");
   const header = request.headers.get("x-gsa-auth-key");
   const query = allowQuery ? new URL(request.url).searchParams.get("key") : null;

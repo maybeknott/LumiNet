@@ -19,9 +19,9 @@ export class CompositeRuleCompiler {
     const parts = trimmed.split(',').map((s) => s.trim());
     if (parts.length < 3) return false;
 
-    const rType = parts[0].toUpperCase() as any;
-    const pattern = parts[1];
-    const action = parts[2].toUpperCase() as ControlRuleAction;
+    const rType = parts[0]!.toUpperCase();
+    const pattern = parts[1]!;
+    const action = parts[2]!.toUpperCase() as ControlRuleAction;
 
     if (!['DIRECT', 'PROXY', 'REJECT'].includes(action)) return false;
 
@@ -33,9 +33,9 @@ export class CompositeRuleCompiler {
       });
       return true;
     } else if (rType === 'IP-CIDR') {
-      const [ipStr, maskStr] = pattern.split('/');
+      const [ipStr, maskStr] = pattern.split('/') as [string, string | undefined];
       const maskBits = maskStr ? parseInt(maskStr, 10) : 32;
-      const ipLong = this.ipToLong(ipStr);
+      const ipLong = this.ipToLong(ipStr!);
       if (ipLong === null) return false;
       const mask = maskBits === 0 ? 0 : (~0 << (32 - maskBits)) >>> 0;
       this.rules.push({
@@ -74,7 +74,7 @@ export class CompositeRuleCompiler {
     if (ipLong === null) return undefined;
     for (const r of this.rules) {
       if (r.type === 'IP-CIDR' && r.netAddr !== undefined && r.mask !== undefined) {
-        if (((ipLong & r.mask) >>> 0) === r.netAddr) {
+        if ((ipLong & r.mask) >>> 0 === r.netAddr) {
           return r.action;
         }
       }
@@ -91,6 +91,6 @@ export class CompositeRuleCompiler {
     if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
       return null;
     }
-    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+    return ((parts[0]! << 24) | (parts[1]! << 16) | (parts[2]! << 8) | parts[3]!) >>> 0;
   }
 }

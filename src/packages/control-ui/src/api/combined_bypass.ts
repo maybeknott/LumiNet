@@ -4,11 +4,7 @@
  */
 
 export type BypassMode =
-  | 'Direct'
-  | 'FakeSniDecoy'
-  | 'SniFragment'
-  | 'CombinedTtlDecoy'
-  | 'CombinedRawDesync';
+  'Direct' | 'FakeSniDecoy' | 'SniFragment' | 'CombinedTtlDecoy' | 'CombinedRawDesync';
 
 export interface CombinedBypassConfig {
   mode: BypassMode;
@@ -39,7 +35,7 @@ export interface FragmentSpec {
 }
 
 export interface PreparedEvasionPlan {
-  decoy_probe?: DecoyProbeSpec;
+  decoy_probe?: DecoyProbeSpec | undefined;
   fragments: FragmentSpec[];
 }
 
@@ -59,7 +55,7 @@ export interface DomainEvaluationResult {
 export function planCombinedEvasion(
   realHello: Uint8Array,
   fakeHello: Uint8Array,
-  config: CombinedBypassConfig = DEFAULT_COMBINED_BYPASS_CONFIG
+  config: CombinedBypassConfig = DEFAULT_COMBINED_BYPASS_CONFIG,
 ): PreparedEvasionPlan {
   const decoy_probe =
     config.use_ttl_trick || config.mode === 'CombinedTtlDecoy'

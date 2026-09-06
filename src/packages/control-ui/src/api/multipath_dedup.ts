@@ -4,11 +4,12 @@
 export class MultipathDedupBuffer {
   private seenHistory: Set<number> = new Set();
   private reorderQueue: Map<number, Uint8Array> = new Map();
-
-  constructor(
-    public expectedSeq: number = 1,
-    public maxHistorySize: number = 128
-  ) {}
+  public expectedSeq: number;
+  public maxHistorySize: number;
+  constructor(expectedSeq: number = 1, maxHistorySize: number = 128) {
+    this.expectedSeq = expectedSeq;
+    this.maxHistorySize = maxHistorySize;
+  }
 
   ingest(seq: number, data: Uint8Array): Uint8Array[] {
     if (seq < this.expectedSeq || this.seenHistory.has(seq) || this.reorderQueue.has(seq)) {

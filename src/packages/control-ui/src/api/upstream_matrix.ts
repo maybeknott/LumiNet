@@ -25,6 +25,6 @@ export class UpstreamMatrixUI {
     const alive = Array.from(this.nodes.values()).filter((n) => n.isAlive);
     if (alive.length === 0) return null;
     alive.sort((a, b) => a.latencyMs - b.latencyMs);
-    return alive[0];
+    return alive[0]!;
   }
 }

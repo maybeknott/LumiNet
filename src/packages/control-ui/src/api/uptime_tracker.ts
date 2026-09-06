@@ -8,8 +8,10 @@ export class UptimeIncidentTrackerUI {
   private history: ProbeEntry[] = [];
   private total = 0;
   private failed = 0;
-
-  constructor(public readonly maxHistory = 100) {}
+  public readonly maxHistory;
+  constructor(maxHistory = 100) {
+    this.maxHistory = maxHistory;
+  }
 
   record(success: boolean, latencyMs: number): void {
     this.total++;

@@ -8,11 +8,11 @@ External relay adapters (GSA/serverless), relay wire types, and their dial behav
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (14): `adaptive_poll.go`, `flow_observability.go`, `gsa_relay.go`, `gsa_relay_test.go`, `http_bounds.go`, `http_bounds_test.go`, `relay_conn_state.go`, `relay_conn_state_test.go`, `relay_wire.go`, `relay_wire_test.go`, `serverless_dialer.go`, `serverless_dialer_test.go` …
+- Direct files (22): `adaptive_poll.go`, `core_supervisor.go`, `core_supervisor_test.go`, `dispersal.go`, `dispersal_test.go`, `error_classifier.go`, `error_classifier_test.go`, `flow_observability.go`, `gas_fronting.go`, `gas_fronting_test.go`, `gsa_relay.go`, `gsa_relay_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `relayclient`.
-- Notable exported surface: `GsaTunnelConn`, `NewGsaTunnelConn`, `NewHttpServerlessConn`, `NewObservedWebSocketConn`, `NewServerlessDialer`, `NewWebSocketConn`, `ServerlessDialer`, `TunnelPayload`, `TunnelResponse`, `WebSocketConn`.
+- Notable exported surface: `AppsScriptRelayConfig`, `ClassifiedEndpointBackoff`, `ClassifyRelayErrorBody`, `ClassifyStderrLine`, `CoreEngineType`, `CoreLifecycleState`, `CoreSupervisor`, `DispersalConn`, `DispersalDialer`, `DriveStorageRelayConfig` …
 - Daemon-local dependencies: `internal/foundation/flowregistry`, `internal/platform/system`.
 - Direct daemon callers: `internal/runtime/proxy`.
 

@@ -15,10 +15,12 @@ export class MultiOutboundRouter {
   private rules: OutboundRouteRule[] = [];
   private outboundWeights = new Map<string, number>();
   private rrCounter = 0;
+  public defaultPolicy: OutboundPolicyDecision;
+  constructor(defaultPolicy: OutboundPolicyDecision = { type: 'DIRECT' }) {
+    this.defaultPolicy = defaultPolicy;
+  }
 
-  constructor(public defaultPolicy: OutboundPolicyDecision = { type: 'DIRECT' }) {}
-
-  addRule(pattern: string, isSuffix: Boolean, policy: OutboundPolicyDecision): void {
+  addRule(pattern: string, isSuffix: boolean, policy: OutboundPolicyDecision): void {
     this.rules.push({
       pattern: pattern.trim().toLowerCase(),
       isSuffix: Boolean(isSuffix),

@@ -10,8 +10,10 @@ export interface StoredProfile {
 
 export class EndpointCredentialVault {
   private profiles = new Map<string, StoredProfile>();
-
-  constructor(private masterKey: Uint8Array) {}
+  private masterKey: Uint8Array;
+  constructor(masterKey: Uint8Array) {
+    this.masterKey = masterKey;
+  }
 
   storeProfile(
     profileId: string,
@@ -20,12 +22,12 @@ export class EndpointCredentialVault {
     user: string,
     rawSecret: Uint8Array,
     nowSec: number,
-    ttlSec: number
+    ttlSec: number,
   ): void {
     const enc = new Uint8Array(rawSecret.length);
     for (let i = 0; i < rawSecret.length; i++) {
       const k = this.masterKey.length > 0 ? this.masterKey[i % this.masterKey.length] : 0;
-      enc[i] = rawSecret[i] ^ k;
+      enc[i] = rawSecret[i]! ^ k!;
     }
 
     this.profiles.set(profileId, {
@@ -46,7 +48,7 @@ export class EndpointCredentialVault {
     const dec = new Uint8Array(p.encryptedSecret.length);
     for (let i = 0; i < p.encryptedSecret.length; i++) {
       const k = this.masterKey.length > 0 ? this.masterKey[i % this.masterKey.length] : 0;
-      dec[i] = p.encryptedSecret[i] ^ k;
+      dec[i] = p.encryptedSecret[i]! ^ k!;
     }
     return dec;
   }

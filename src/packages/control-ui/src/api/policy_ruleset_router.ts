@@ -12,8 +12,10 @@ export class PolicyRulesetRouter {
   private keywordRules: Array<[string, PolicyVerdict]> = [];
   private cidrRules: CidrRuleEntry[] = [];
   private cache = new Map<string, PolicyVerdict>();
-
-  constructor(public defaultPolicy: PolicyVerdict = 'DIRECT') {}
+  public defaultPolicy: PolicyVerdict;
+  constructor(defaultPolicy: PolicyVerdict = 'DIRECT') {
+    this.defaultPolicy = defaultPolicy;
+  }
 
   addExactDomain(domain: string, verdict: PolicyVerdict): void {
     this.exactDomains.set(domain.trim().toLowerCase(), verdict);
@@ -75,7 +77,7 @@ export class PolicyRulesetRouter {
     const ipLong = this.ipToLong(ipStr);
     if (ipLong === null) return this.defaultPolicy;
     for (const c of this.cidrRules) {
-      if (((ipLong & c.mask) >>> 0) === c.netAddr) {
+      if ((ipLong & c.mask) >>> 0 === c.netAddr) {
         return c.verdict;
       }
     }
@@ -91,6 +93,6 @@ export class PolicyRulesetRouter {
     if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
       return null;
     }
-    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+    return ((parts[0]! << 24) | (parts[1]! << 16) | (parts[2]! << 8) | parts[3]!) >>> 0;
   }
 }

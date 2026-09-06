@@ -9,7 +9,7 @@ Network data-plane primitives: DNS, routing, canonical proxy parsing, CIDR math,
 
 ## Contents
 - No direct source files; this folder is a namespace/organization node for child modules.
-- Child folders: `dns/`, `dnstunnel/`, `geoip/`, `kcppolicy/`, `proxyconfig/`, `routing/`, `tlsdecoy/`.
+- Child folders: `diagnostics/`, `dns/`, `dnstunnel/`, `geoip/`, `kcppolicy/`, `proxyconfig/`, `routing/`, `tlsdecoy/`, `transport/`.
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

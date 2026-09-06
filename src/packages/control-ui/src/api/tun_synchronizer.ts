@@ -3,10 +3,19 @@
  */
 export class TunRouteSynchronizer {
   private bypassPrefixes: string[] = [
-    '10.', '127.', '169.254.', '172.16.', '192.168.', '224.', 'fe80:', '::1',
+    '10.',
+    '127.',
+    '169.254.',
+    '172.16.',
+    '192.168.',
+    '224.',
+    'fe80:',
+    '::1',
   ];
-
-  constructor(public tunMtu: number = 1400) {}
+  public tunMtu: number;
+  constructor(tunMtu: number = 1400) {
+    this.tunMtu = tunMtu;
+  }
 
   addBypassPrefix(prefix: string): void {
     if (!this.bypassPrefixes.includes(prefix)) {

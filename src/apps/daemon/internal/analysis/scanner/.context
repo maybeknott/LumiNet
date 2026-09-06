@@ -1,18 +1,19 @@
 # src/apps/daemon/internal/analysis/scanner
 
 ## Purpose
-Active scanner implementation: supported scan/session logic, protocol probes, progress, and result models. Adaptive load policy is exposed as bounded diagnostics planning rather than a second scanner runtime throttle.
+Active scanner implementation: supported scan/session logic, throttling, protocol probes, progress, and result models.
 
 ## Architectural role
 - Daemon dependency band: `analysis` (rank 3; lower rank = deeper implementation).
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (52): `blackrock.go`, `cf_speed_test.go`, `cidr_divider.go`, `cidr_divider_test.go`, `cidr_expander.go`, `classification_utils.go`, `cleanip_finder.go`, `cleanip_scanner.go`, `cloudflare_deployer.go`, `cloudflare_deployer_retry_test.go` …
+- Direct files (54): `blackrock.go`, `cf_speed_test.go`, `cidr_divider.go`, `cidr_divider_test.go`, `cidr_expander.go`, `classification_utils.go`, `cleanip_finder.go`, `cleanip_scanner.go`, `cloudflare_deployer.go`, `cloudflare_deployer_retry_test.go`, `cloudflare_deployer_test.go`, `dijkstra_routing.go` …
+- Child folders: `testdata/`.
 
 ## Interfaces and dependencies
 - Go package: `scanner`.
-- Notable exported surface: `AbandonedSession`, `AppendTLSOutcomePhases`, `Atoi`, `BalancerNode`, `BlackRock`, `BlackRockStats`, `BoundedPhaseEvidence`, `BuildPlan`, `BuildPlanFromSubnetDivision` …
+- Notable exported surface: `AbandonedSession`, `AppendTLSOutcomePhases`, `Atoi`, `BalancerNode`, `BatchScanNearby`, `BlackRock`, `BlackRockStats`, `BoundedPhaseEvidence`, `BuildPlan`, `BuildPlanFromSubnetDivision` …
 - Daemon-local dependencies: `internal/foundation/remoteaction`, `internal/networking/geoip`.
 - Direct daemon callers: `internal/adapters/api`, `internal/runtime/routingplugin`, `internal/workflows/jobs`.
 

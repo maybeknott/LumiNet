@@ -156,7 +156,7 @@ export class RelayAclFilter {
 
   constructor(
     sourceWhitelist: string[] = DEFAULT_EDGE_CIDRS,
-    destinationBlacklist: string[] = DEFAULT_BLOCKED_CIDRS
+    destinationBlacklist: string[] = DEFAULT_BLOCKED_CIDRS,
   ) {
     this.sourceWhitelist = [...sourceWhitelist];
     this.destinationBlacklist = [...destinationBlacklist];
@@ -172,10 +172,16 @@ export class RelayAclFilter {
 
   public evaluate(src: string, dst: string): { allowed: boolean; reason?: string } {
     if (!this.isSourceAllowed(src)) {
-      return { allowed: false, reason: `Source IP ${src} is not in authorized edge whitelist` };
+      return {
+        allowed: false,
+        reason: `Source IP ${src} is not in authorized edge whitelist`,
+      };
     }
     if (!this.isDestinationAllowed(dst)) {
-      return { allowed: false, reason: `Destination IP ${dst} is in prohibited blacklist` };
+      return {
+        allowed: false,
+        reason: `Destination IP ${dst} is in prohibited blacklist`,
+      };
     }
     return { allowed: true };
   }
@@ -191,7 +197,7 @@ export class UdpOverTcpMultiplexer {
   public static encode(
     sessionId: Uint8Array,
     streamTag: Uint8Array,
-    payload: Uint8Array
+    payload: Uint8Array,
   ): Uint8Array {
     const out = new Uint8Array(8 + payload.length);
     out.set(sessionId.subarray(0, 6), 0);
@@ -217,7 +223,7 @@ export class UdpOverTcpMultiplexer {
   }
 
   public static decodeResponse(
-    src: Uint8Array
+    src: Uint8Array,
   ): { streamTag: Uint8Array; datagram: Uint8Array } | null {
     if (src.length < 2) return null;
     return {
@@ -229,7 +235,7 @@ export class UdpOverTcpMultiplexer {
   public static channelKey(
     destination: string,
     sessionId: Uint8Array,
-    streamTag: Uint8Array
+    streamTag: Uint8Array,
   ): string {
     const hex = (buf: Uint8Array) =>
       Array.from(buf)

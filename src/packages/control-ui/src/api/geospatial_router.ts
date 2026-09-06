@@ -12,13 +12,15 @@ export interface GeoBoundingBox {
 
 export class GeoFencedRegion {
   public bbox: GeoBoundingBox;
-
-  constructor(
-    public regionCode: String,
-    public regionName: string,
-    public vertices: GeoPoint[],
-    public egressTag: string
-  ) {
+  public regionCode: string;
+  public regionName: string;
+  public vertices: GeoPoint[];
+  public egressTag: string;
+  constructor(regionCode: string, regionName: string, vertices: GeoPoint[], egressTag: string) {
+    this.regionCode = regionCode;
+    this.regionName = regionName;
+    this.vertices = vertices;
+    this.egressTag = egressTag;
     let minLat = Infinity;
     let maxLat = -Infinity;
     let minLon = Infinity;
@@ -48,13 +50,15 @@ export class GeoFencedRegion {
     let inside = false;
     let j = n - 1;
     for (let i = 0; i < n; i++) {
-      const vi = this.vertices[i];
-      const vj = this.vertices[j];
+      const vi = this.vertices[i]!;
+      const vj = this.vertices[j]!;
 
       const intersect =
         vi.latitude > p.latitude !== vj.latitude > p.latitude &&
         p.longitude <
-          ((vj.longitude - vi.longitude) * (p.latitude - vi.latitude)) / (vj.latitude - vi.latitude) + vi.longitude;
+          ((vj.longitude - vi.longitude) * (p.latitude - vi.latitude)) /
+            (vj.latitude - vi.latitude) +
+            vi.longitude;
 
       if (intersect) inside = !inside;
       j = i;
@@ -65,8 +69,10 @@ export class GeoFencedRegion {
 
 export class GeospatialPolygonRouter {
   private regions: GeoFencedRegion[] = [];
-
-  constructor(public defaultEgress: string) {}
+  public defaultEgress: string;
+  constructor(defaultEgress: string) {
+    this.defaultEgress = defaultEgress;
+  }
 
   addRegion(region: GeoFencedRegion): void {
     this.regions.push(region);

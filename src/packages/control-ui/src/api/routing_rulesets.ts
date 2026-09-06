@@ -5,11 +5,7 @@
 export type DomainStrategy = 'AsIs' | 'IPIfNonMatch' | 'IPOnDemand';
 
 export type RoutingRulesetPreset =
-  | 'Global'
-  | 'BypassIran'
-  | 'BypassRussia'
-  | 'BypassChina'
-  | 'BlockAds';
+  'Global' | 'BypassIran' | 'BypassRussia' | 'BypassChina' | 'BlockAds';
 
 export interface RoutingRule {
   type: string;
@@ -76,10 +72,10 @@ export function getPresetRoutingRules(preset: RoutingRulesetPreset): RoutingRule
  */
 export function compileMultiHopChain(
   chainRemarks: string[],
-  exitNodeRemark: string
-): { tag: string; dialerProxy?: string }[] {
+  exitNodeRemark: string,
+): { tag: string; dialerProxy?: string | undefined }[] {
   const allHops = [...chainRemarks, exitNodeRemark];
-  return allHops.map((hopRemark, index) => {
+  return allHops.map((hopRemark: string, index: number) => {
     const isExit = index === allHops.length - 1;
     return {
       tag: hopRemark,

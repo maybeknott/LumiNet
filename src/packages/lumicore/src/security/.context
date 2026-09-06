@@ -4,7 +4,7 @@
 Native security-analysis primitives.
 
 ## Contents
-- Direct files (9): `anomaly.rs`, `blocklist.rs`, `challenge_solver.rs`, `credentials.rs`, `forensics.rs`, `gov_blocklist.rs`, `idn_sanitizer.rs`, `memory.rs`, `mod.rs`
+- Direct files (25): `anomaly.rs`, `bandwidth_quota_enforcer.rs`, `blocklist.rs`, `challenge_solver.rs`, `client_ban_supervisor.rs`, `credentials.rs`, `dynamic_ca_manager.rs`, `encrypted_payload_envelope.rs`, `endpoint_credential_vault.rs`, `enterprise_access_interceptor.rs`, `enterprise_vpn_controller.rs`, `firewall_killswitch.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

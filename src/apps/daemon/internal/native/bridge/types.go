@@ -1,6 +1,8 @@
 // Package bridge provides the types for the FFI bridge.
 package bridge
 
+import "encoding/json"
+
 // ScanConfig holds configuration for scan operations sent to the Rust core.
 type ScanConfig struct {
 	Timeout      uint32 `json:"timeout_ms"`
@@ -122,5 +124,23 @@ type StreamProgressData struct {
 	Completed int  `json:"completed"`
 	Total     int  `json:"total"`
 	Percent   uint `json:"percent"`
+}
+
+// ParseStreamProbeResult decodes a StreamEvtProbeResult event payload. The
+// bridge owns this wire schema; callers must consume typed values instead of
+// reconstructing the JSON shape themselves.
+func ParseStreamProbeResult(data []byte) (StreamProbeResultData, error) {
+	var probe StreamProbeResultData
+	err := json.Unmarshal(data, &probe)
+	return probe, err
+}
+
+// ParseStreamProgress decodes a StreamEvtPoolUpdate event payload. The bridge
+// owns this wire schema; callers must consume typed values instead of
+// reconstructing the JSON shape themselves.
+func ParseStreamProgress(data []byte) (StreamProgressData, error) {
+	var prog StreamProgressData
+	err := json.Unmarshal(data, &prog)
+	return prog, err
 }
 

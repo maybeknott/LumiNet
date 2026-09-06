@@ -3,13 +3,18 @@
 const WORKER_URL = "Your-Cloudflare-worker-address";
 
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 25000;
+const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
+const MAX_RESPONSE_BODY_BYTES = 20 * 1024 * 1024;
 
 export default {
     async fetch(request, env) {
         try {
-            const hop = request.headers.get("x-relay-hop");
-            const fwdHop = request.headers.get("x-fwd-hop");
-            if (hop === "1" || fwdHop === "1") {
+            // Loop budget: reject any request that already traversed a relay.
+            const inboundHop = Math.max(
+                parseInt(request.headers.get("x-relay-hop"), 10) || 0,
+                parseInt(request.headers.get("x-fwd-hop"), 10) || 0
+            );
+            if (inboundHop >= 1) {
                 return json({ e: "loop detected" }, 508);
             }
 
@@ -25,6 +30,23 @@ export default {
                 return json({ e: "Method not allowed." }, 405);
             }
 
+            // Fail closed: refuse to proxy until the operator configures a key.
+            const authKey = (env && (env.AUTH_KEY || env.RELAY_AUTH_KEY)) || "";
+            if (!authKey) {
+                return json({ e: "relay not configured: set AUTH_KEY" }, 503);
+            }
+            const provided = request.headers.get("x-gsa-auth-key")
+                || new URL(request.url).searchParams.get("key")
+                || (request.headers.get("authorization") || "").replace(/^Bearer /i, "");
+            if (provided !== authKey) {
+                return json({ e: "unauthorized" }, 401);
+            }
+
+            const contentLength = parseInt(request.headers.get("content-length"), 10);
+            if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+                return json({ e: "request body too large" }, 413);
+            }
+
             const req = await request.json();
 
             if (!req.u) {
@@ -33,11 +55,15 @@ export default {
 
             const targetUrl = new URL(req.u);
 
-            const BLOCKED_HOSTS = [
-                WORKER_URL,
-            ];
+            // Block self-fetches: prefer the real request hostname so the
+            // guard works even when WORKER_URL is left at its placeholder.
+            const requestHost = new URL(request.url).hostname;
+            const BLOCKED_HOSTS = [requestHost];
+            if (WORKER_URL && !WORKER_URL.startsWith("Your-")) {
+                BLOCKED_HOSTS.push(WORKER_URL.replace(/^https?:\/\//, "").split("/")[0]);
+            }
 
-            if (BLOCKED_HOSTS.some(h => targetUrl.hostname.endsWith(h))) {
+            if (BLOCKED_HOSTS.some(h => targetUrl.hostname === h || targetUrl.hostname.endsWith("." + h))) {
                 return json({ e: "self-fetch blocked" }, 400);
             }
 
@@ -70,8 +96,15 @@ export default {
 
             const resp = await fetch(targetUrl.toString(), fetchOptions);
 
-            // Read response safely (no stack overflow)
+            // Read response safely (no stack overflow), bounded in size.
+            const contentLen = parseInt(resp.headers.get("content-length"), 10);
+            if (Number.isFinite(contentLen) && contentLen > MAX_RESPONSE_BODY_BYTES) {
+                return json({ e: "upstream response too large" }, 502);
+            }
             const buffer = await resp.arrayBuffer();
+            if (buffer.byteLength > MAX_RESPONSE_BODY_BYTES) {
+                return json({ e: "upstream response too large" }, 502);
+            }
             const uint8 = new Uint8Array(buffer);
 
             let binary = "";

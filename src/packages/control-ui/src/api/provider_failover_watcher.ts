@@ -11,8 +11,10 @@ export interface ProviderHealthState {
 export class ProviderFailoverWatcher {
   private providers = new Map<string, ProviderHealthState>();
   activeProvider?: string;
-
-  constructor(private failoverThreshold: number = 3) {}
+  private failoverThreshold: number;
+  constructor(failoverThreshold: number = 3) {
+    this.failoverThreshold = failoverThreshold;
+  }
 
   registerProvider(name: string, isActive: boolean): void {
     this.providers.set(name, {

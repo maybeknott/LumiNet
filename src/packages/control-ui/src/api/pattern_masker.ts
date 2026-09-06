@@ -3,17 +3,23 @@
  */
 export class DpiPatternMasker {
   static readonly FAKE_ALERT = new Uint8Array([0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00]);
-
-  constructor(
-    public splitOffset: number = 5,
-    public insertNoiseRecord: boolean = true
-  ) {}
+  public splitOffset: number;
+  public insertNoiseRecord: boolean;
+  constructor(splitOffset: number = 5, insertNoiseRecord: boolean = true) {
+    this.splitOffset = splitOffset;
+    this.insertNoiseRecord = insertNoiseRecord;
+  }
 
   fragmentPayload(payload: Uint8Array): Uint8Array[] {
     if (payload.length <= this.splitOffset) return [payload];
     const frags: Uint8Array[] = [];
 
-    if (this.insertNoiseRecord && payload.length >= 2 && payload[0] === 0x16 && payload[1] === 0x03) {
+    if (
+      this.insertNoiseRecord &&
+      payload.length >= 2 &&
+      payload[0] === 0x16 &&
+      payload[1] === 0x03
+    ) {
       frags.push(new Uint8Array(DpiPatternMasker.FAKE_ALERT));
     }
 

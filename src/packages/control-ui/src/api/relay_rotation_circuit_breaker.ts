@@ -47,7 +47,7 @@ export class RelayRotationCircuitBreaker {
 
     for (let i = 0; i < total; i++) {
       const idx = (this.currentIndex + i) % total;
-      const relay = this.relays[idx];
+      const relay = this.relays[idx]!;
 
       if (relay.state === 'open') {
         if (nowMs - relay.lastStateChangeMs >= this.config.cooldownMs) {
@@ -66,7 +66,7 @@ export class RelayRotationCircuitBreaker {
   }
 
   public recordSuccess(id: string, nowMs: number): void {
-    const relay = this.relays.find(r => r.id === id);
+    const relay = this.relays.find((r) => r.id === id);
     if (!relay) return;
 
     relay.consecutiveFailures = 0;
@@ -80,7 +80,7 @@ export class RelayRotationCircuitBreaker {
   }
 
   public recordFailure(id: string, nowMs: number): void {
-    const relay = this.relays.find(r => r.id === id);
+    const relay = this.relays.find((r) => r.id === id);
     if (!relay) return;
 
     relay.consecutiveFailures++;

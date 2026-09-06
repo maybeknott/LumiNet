@@ -1,11 +1,12 @@
-export enum FlowProtocol {
-  Unknown = 'unknown',
-  TLS = 'tls',
-  HTTP = 'http',
-  SSH = 'ssh',
-  WireGuard = 'wireguard',
-  QUIC = 'quic'
-}
+export const FlowProtocol = {
+  Unknown: 'unknown',
+  TLS: 'tls',
+  HTTP: 'http',
+  SSH: 'ssh',
+  WireGuard: 'wireguard',
+  QUIC: 'quic',
+} as const;
+export type FlowProtocol = (typeof FlowProtocol)[keyof typeof FlowProtocol];
 
 export interface FlowRecord {
   flowId: number;
@@ -50,7 +51,7 @@ export class FlowAnalyzerEngine {
       packetsRecv: 0,
       bytesSent: payload.length,
       bytesRecv: 0,
-      retransmissions: 0
+      retransmissions: 0,
     });
     return fid;
   }

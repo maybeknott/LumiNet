@@ -1,0 +1,17 @@
+# src/packages/control-ui/src/locales/seed
+
+## Purpose
+Source folder `src/packages/control-ui/src/locales/seed`. It groups the files and child modules listed below; behavior ownership stays with the nearest named module.
+
+## Contents
+- Direct files (5): `en-US.json`, `fa-IR.json`, `ru-RU.json`, `v2rayN-1773-keys.json`, `zh-CN.json`
+
+## Interfaces and dependencies
+- React/TypeScript source; imports flow through Vite/TypeScript module resolution and daemon calls go through the browser API adapter.
+
+## Invariants
+- This is the sole authored control UI; desktop/daemon hosts consume its canonical bundle rather than forking UI source.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

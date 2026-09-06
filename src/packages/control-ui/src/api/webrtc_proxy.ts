@@ -50,8 +50,7 @@ export function decodeDataChannelFrame(src: Uint8Array): DataChannelFrame {
   if (src.length < 4) {
     throw new Error('Buffer too short for WebRTC DataChannel frame');
   }
-  const ppid =
-    ((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]) >>> 0;
+  const ppid = ((src[0]! << 24) | (src[1]! << 16) | (src[2]! << 8) | src[3]!) >>> 0;
   const payload = src.slice(4);
   return { ppid, payload };
 }

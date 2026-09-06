@@ -1,10 +1,11 @@
-export enum CarrierType {
-  Telecom = 'telecom',
-  Unicom = 'unicom',
-  Mobile = 'mobile',
-  Satellite = 'satellite',
-  Overlay = 'overlay',
-}
+export const CarrierType = {
+  Telecom: 'telecom',
+  Unicom: 'unicom',
+  Mobile: 'mobile',
+  Satellite: 'satellite',
+  Overlay: 'overlay',
+} as const;
+export type CarrierType = (typeof CarrierType)[keyof typeof CarrierType];
 
 export interface CarrierRoute {
   carrier: CarrierType;
@@ -27,7 +28,7 @@ export class MulticarrierRelayChannel {
     const active = this.routes.filter((r) => r.isActive);
     if (active.length === 0) return null;
     active.sort((a, b) => this.score(b) - this.score(a));
-    return active[0];
+    return active[0]!;
   }
 
   recordFeedback(carrier: CarrierType, rttMs: number, success: boolean): void {

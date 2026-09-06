@@ -10,11 +10,12 @@ function areBytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 
 export class CamouflageStreamMasquerader {
   private validUserIds: Uint8Array[] = [];
-
-  constructor(
-    private sharedSecret: Uint8Array,
-    public decoyHost: string
-  ) {}
+  private sharedSecret: Uint8Array;
+  public decoyHost: string;
+  constructor(sharedSecret: Uint8Array, decoyHost: string) {
+    this.sharedSecret = sharedSecret;
+    this.decoyHost = decoyHost;
+  }
 
   registerUser(userId: Uint8Array): void {
     const copy = new Uint8Array(16);
@@ -31,9 +32,9 @@ export class CamouflageStreamMasquerader {
     const secLen = this.sharedSecret.length > 0 ? this.sharedSecret.length : 1;
     for (let i = 0; i < 16; i++) {
       const secByte = this.sharedSecret.length > 0 ? this.sharedSecret[i % secLen] : 0;
-      const mask = secByte ^ salt[i];
+      const mask = secByte! ^ salt[i]!;
       const uByte = i < userId.length ? userId[i] : 0;
-      out[16 + i] = uByte ^ mask;
+      out[16 + i] = uByte! ^ mask;
     }
     return out;
   }
@@ -47,8 +48,8 @@ export class CamouflageStreamMasquerader {
 
     for (let i = 0; i < 16; i++) {
       const secByte = this.sharedSecret.length > 0 ? this.sharedSecret[i % secLen] : 0;
-      const mask = secByte ^ salt[i];
-      candidateUid[i] = preamble[16 + i] ^ mask;
+      const mask = secByte! ^ salt[i]!;
+      candidateUid[i] = preamble[16 + i]! ^ mask;
     }
 
     for (const valid of this.validUserIds) {

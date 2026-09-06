@@ -4,7 +4,7 @@
 Throughput/speed measurement primitives.
 
 ## Contents
-- Direct files (2): `mod.rs`, `tester.rs`
+- Direct files (3): `batch_speed_matrix.rs`, `mod.rs`, `tester.rs`
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.
