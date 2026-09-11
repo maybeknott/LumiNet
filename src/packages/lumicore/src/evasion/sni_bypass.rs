@@ -5,6 +5,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
+#[cfg(target_os = "windows")]
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
@@ -44,7 +45,10 @@ impl SniBypassEngine {
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn start(&mut self, _config: SniBypassConfig) -> Result<(), String> {
+    pub fn start(&mut self, config: SniBypassConfig) -> Result<(), String> {
+        if !config.enabled {
+            return Ok(());
+        }
         Err("WinDivert SNI Bypass is only supported on Windows".to_string())
     }
 
@@ -188,7 +192,7 @@ mod win_impl {
         let filter_c = format!("{}\0", config.filter);
 
         let handle = unsafe { (dll.open)(filter_c.as_ptr(), 0, 0, 0) };
-        if handle.is_null() || handle.is_null() {
+        if handle.is_null() {
             return Err("Failed to open WinDivert handle".to_string());
         }
 
@@ -277,7 +281,7 @@ mod win_impl {
         let tcp_hdr_len = ((packet[ip_hdr_len + 12] >> 4) as usize) * 4;
         let payload_offset = ip_hdr_len + tcp_hdr_len;
 
-        if packet.len() < payload_offset + 5 {
+        if packet.len() < payload_offset + 6 {
             return false;
         }
 
@@ -298,7 +302,13 @@ mod win_impl {
         }
 
         let ip_hdr_len = (orig[0] & 0x0F) as usize * 4;
+        if ip_hdr_len < 20 || orig.len() < ip_hdr_len + 20 {
+            return None;
+        }
         let tcp_hdr_len = ((orig[ip_hdr_len + 12] >> 4) as usize) * 4;
+        if tcp_hdr_len < 20 || orig.len() < ip_hdr_len + tcp_hdr_len {
+            return None;
+        }
 
         // Build fake clienthello payload
         let fake_hello = crate::evasion::sni_spoof::build_fake_clienthello(
@@ -371,5 +381,17 @@ mod tests {
         let res = engine.start(config);
         assert!(res.is_ok());
         engine.stop();
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn enabled_engine_fails_closed_on_unsupported_platforms() {
+        let mut engine = SniBypassEngine::new();
+        let config = SniBypassConfig {
+            enabled: true,
+            ..SniBypassConfig::default()
+        };
+        let err = engine.start(config).expect_err("enabled WinDivert bypass must fail closed");
+        assert!(err.contains("only supported on Windows"));
     }
 }

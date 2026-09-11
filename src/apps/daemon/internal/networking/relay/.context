@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/networking/relay
+
+## Purpose
+Implements daemon-side relay transport integration for forwarding traffic through configured relay endpoints.
+
+## Contents
+Contains Go relay connection, framing/configuration, and lifecycle helpers used by networking orchestration.
+
+## Interfaces and dependencies
+Called by higher transport/routing layers and depends on socket/protocol primitives plus validated relay configuration.
+
+## Invariants
+Relay endpoints and peer data are validated, cancellation and deadlines bound network activity, partial I/O is handled explicitly, and failed or closed sessions release owned connections and goroutines.

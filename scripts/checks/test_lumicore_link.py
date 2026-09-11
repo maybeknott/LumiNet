@@ -21,6 +21,16 @@ note: native-static-libs: -lutil -lrt -lpthread -lm -ldl -lc
             ["-lutil", "-lrt", "-lpthread", "-lm", "-ldl", "-lc"],
         )
 
+    def test_strips_ansi_from_native_static_libs_note(self) -> None:
+        output = (
+            "\x1b[1m\x1b[32mnote\x1b[0m: native-static-libs: "
+            "-lws2_32 -lkernel32\x1b[0m\n"
+        )
+        self.assertEqual(
+            lumicore_link.parse_native_static_libs(output),
+            ["-lws2_32", "-lkernel32"],
+        )
+
     def test_rejects_missing_native_static_libs_note(self) -> None:
         with self.assertRaisesRegex(ValueError, "native-static-libs"):
             lumicore_link.parse_native_static_libs("Finished release")

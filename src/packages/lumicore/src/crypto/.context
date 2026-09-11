@@ -4,7 +4,7 @@
 Native cryptographic primitives and key-exchange implementations.
 
 ## Contents
-- Direct files (13): `aead_framing.rs`, `aes_ecb.rs`, `aes_gcm.rs`, `credential_bundle.rs`, `ecc_curve.rs`, `garlic_packet.rs`, `hkdf_keygen.rs`, `mkem_kem.rs`, `mlkem.rs`, `mod.rs`, `stream_box.rs`, `tor_hybrid_encrypt.rs` …
+- Direct files (18): `aead_framing.rs`, `aes_ecb.rs`, `aes_gcm.rs`, `credential_bundle.rs`, `ecc_curve.rs`, `eih.rs`, `garlic_packet.rs`, `hkdf_keygen.rs`, `lower_base36.rs`, `mkem_kem.rs`, `mlkem.rs`, `mod.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

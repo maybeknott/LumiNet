@@ -8,14 +8,14 @@ Domain, per-app, and rule-based routing policy/data ownership, including embedde
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (2): `domain_domainrouting.go`, `domain_domainrouting_test.go`
+- Direct files (40): `adaptive_outbound_coordinator.go`, `adaptive_outbound_coordinator_test.go`, `async_rule_evaluator.go`, `async_rule_evaluator_test.go`, `autonomous_routing.go`, `autonomous_routing_test.go`, `autoproxy_matcher.go`, `autoproxy_matcher_test.go`, `canonical_blacklist.go`, `canonical_blacklist_test.go`, `composite_rule_compiler.go`, `composite_rule_compiler_test.go` …
 - Child folders: `domain_data/`.
 
 ## Interfaces and dependencies
 - Go package: `routing`.
-- Notable exported surface: `DomainList`, `DomainRule`, `NewRouter`, `RouteAction`, `Router`, `RuleType`.
-- Daemon-local dependencies: none.
-- Direct daemon callers: `internal/adapters/api`.
+- Notable exported surface: `AdaptiveOutboundResilienceCoordinator`, `AsyncRuleEvaluator`, `AutoProxyMatcher`, `AutoProxyRuleItem`, `AutoProxyVerdict`, `AutonomousCoordinator`, `CanonicalBlacklistEngine`, `CarrierRoute`, `CarrierType`, `CidrRule` …
+- Daemon-local dependencies: `internal/networking/diagnostics`, `internal/networking/transport`, `internal/platform/security`.
+- Direct daemon callers: `internal/adapters/api`, `internal/networking/proxyconfig`.
 
 ## Invariants
 - `networking` code must not import a higher-rank daemon band.

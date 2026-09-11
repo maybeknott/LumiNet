@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/dns
+
+## Purpose
+Owns Android-specific DNS configuration and resolution integration used by LumiNet networking flows.
+
+## Contents
+Contains Kotlin/Java DNS helpers, models, and platform adapters used by the Android application and tunnel stack.
+
+## Interfaces and dependencies
+Interacts with Android networking/platform APIs and is consumed by app or tunnel components that apply DNS behavior.
+
+## Invariants
+DNS state must be validated before application, lifecycle cleanup must not leave stale platform state, and routing/resolution changes must respect active tunnel ownership.

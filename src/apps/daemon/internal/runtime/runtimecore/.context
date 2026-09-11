@@ -8,11 +8,11 @@ Long-lived daemon runtime-engine owner for Tor/Psiphon lifecycle and status; int
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (15): `adapters.go`, `adapters_transport_test.go`, `capability.go`, `capability_test.go`, `chaining_test.go`, `engine_lifecycle_unix_test.go`, `ikev2_engine.go`, `ikev2_engine_test.go`, `integration_unix_test.go`, `manager.go`, `manager_test.go`, `psiphon_engine.go` …
+- Direct files (17): `adapters.go`, `adapters_transport_test.go`, `capability.go`, `capability_test.go`, `chaining_test.go`, `engine_lifecycle_unix_test.go`, `ikev2_engine.go`, `ikev2_engine_test.go`, `integration_unix_test.go`, `ipsec_manager.go`, `ipsec_manager_test.go`, `manager.go` …
 
 ## Interfaces and dependencies
 - Go package: `runtimecore`.
-- Notable exported surface: `Capability`, `DefaultManager`, `Engine`, `ErrInvalidRequest`, `Manager`, `NewManager`, `ProbeEngine`, `Request`, `Status`, `TorTransportPlugin`.
+- Notable exported surface: `Capability`, `DefaultIkev2Proposal`, `DefaultManager`, `Engine`, `ErrInvalidRequest`, `Ikev2Proposal`, `IpsecProfile`, `Manager`, `NatTKeepaliveDaemon`, `NewIpsecProfile` …
 - Daemon-local dependencies: `internal/foundation/flowregistry`, `internal/platform/process`, `internal/platform/system`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/adapters/mobilebind`.
 

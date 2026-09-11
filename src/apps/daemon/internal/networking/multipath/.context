@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/networking/multipath
+
+## Purpose
+Owns multipath networking primitives that coordinate traffic across more than one eligible network path.
+
+## Contents
+Contains Go path state, scheduling/selection, health, and transport helpers used by multipath-capable flows.
+
+## Interfaces and dependencies
+Consumed by daemon networking/routing layers and depends on connection primitives, timing/health observations, and context cancellation.
+
+## Invariants
+Path selection is deterministic for equivalent state, unavailable paths are not selected as healthy, lifecycle cancellation reaches all owned work, and path/resource state is synchronized across concurrent access.

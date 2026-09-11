@@ -8,7 +8,7 @@ Gin HTTP/WebSocket adapter and served-route inventory. Translates requests into 
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (124): `advanced_route_truth.go`, `advanced_route_truth_test.go`, `config_mutation.go`, `config_mutation_test.go`, `doctor.go`, `doctor_context_test.go`, `handlers_capabilities.go`, `handlers_capabilities_test.go`, `handlers_circumvention_catalog.go`, `handlers_diagnostic_doctor.go`, `handlers_diagnostic_iperf.go`, `handlers_diagnostic_iperf_test.go` …
+- Direct files (127): `advanced_route_truth.go`, `advanced_route_truth_test.go`, `config_mutation.go`, `config_mutation_test.go`, `doctor.go`, `doctor_context_test.go`, `handlers_capabilities.go`, `handlers_capabilities_test.go`, `handlers_circumvention_catalog.go`, `handlers_diagnostic_doctor.go`, `handlers_diagnostic_iperf.go`, `handlers_diagnostic_iperf_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `api`.

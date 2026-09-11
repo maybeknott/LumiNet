@@ -23,6 +23,16 @@ func TestUnsupportedPlatformControlsFailClosed(t *testing.T) {
 		t.Fatalf("ResetNCSIConfig: got %v, want unsupported-platform error", err)
 	}
 
+	if _, err := GetDNS(context.Background(), "eth0"); !errors.Is(err, ErrUnsupportedPlatformFeature) {
+		t.Fatalf("GetDNS: got %v, want unsupported-platform error", err)
+	}
+	if err := SetDNS(context.Background(), "eth0", []string{"1.1.1.1"}); !errors.Is(err, ErrUnsupportedPlatformFeature) {
+		t.Fatalf("SetDNS: got %v, want unsupported-platform error", err)
+	}
+	if err := ResetDNS(context.Background(), "eth0"); !errors.Is(err, ErrUnsupportedPlatformFeature) {
+		t.Fatalf("ResetDNS: got %v, want unsupported-platform error", err)
+	}
+
 	if TunRoutingSupported() {
 		t.Fatal("host-route TUN reported supported on non-Windows build")
 	}

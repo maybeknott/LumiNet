@@ -2,7 +2,9 @@ package api
 
 import (
 	"crypto/subtle"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -12,23 +14,24 @@ import (
 	"github.com/maybeknott/luminet/internal/foundation/redact"
 )
 
-// SessionCookieName is the name of the HttpOnly, SameSite=Strict cookie used to
-// carry the API key to browser clients (including the WebSocket handshake, which
-// cannot set custom headers). Browsers send it automatically on same-origin
-// requests, and SameSite=Strict prevents it from riding cross-site requests —
-// providing CSRF protection for the privileged control API.
+// SessionCookieName identifies the opaque browser control-session cookie. The
+// API key itself is never persisted in a browser cookie.
 const SessionCookieName = "luminet_session"
 
-// AuthMiddleware returns a Gin middleware that validates API key authentication.
-// An empty apiKey is a configuration failure and denies every privileged
-// request. This preserves the default-deny boundary even when the API is
-// embedded without the serve command's startup validation.
-//
-// The key is accepted via the X-API-Key header (CLI/REST clients) or the
-// SessionCookieName cookie (browser clients). The ?api_key= query parameter is
-// intentionally NOT accepted, to keep the secret out of URLs, logs, history,
-// and Referer headers.
+// AuthMiddleware validates header-based API-key authentication for non-browser
+// clients. Browser sessions are intentionally handled by
+// AuthMiddlewareWithBrowserSession so the raw API key never becomes a cookie.
 func AuthMiddleware(apiKey string) gin.HandlerFunc {
+	return authMiddleware(apiKey, nil)
+}
+
+// AuthMiddlewareWithBrowserSession accepts either the X-API-Key header or a
+// separately generated, short-lived opaque browser session cookie.
+func AuthMiddlewareWithBrowserSession(apiKey string, sessions *browserSessionIssuer) gin.HandlerFunc {
+	return authMiddleware(apiKey, sessions)
+}
+
+func authMiddleware(apiKey string, sessions *browserSessionIssuer) gin.HandlerFunc {
 	if apiKey == "" {
 		return func(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
@@ -40,22 +43,71 @@ func AuthMiddleware(apiKey string) gin.HandlerFunc {
 	want := []byte(apiKey)
 	return func(c *gin.Context) {
 		key := c.GetHeader("X-API-Key")
-		if key == "" {
-			if cookie, err := c.Cookie(SessionCookieName); err == nil {
-				key = cookie
+		if key != "" && subtle.ConstantTimeCompare([]byte(key), want) == 1 {
+			c.Next()
+			return
+		}
+		if sessions != nil {
+			if cookie, err := c.Cookie(SessionCookieName); err == nil && sessions.valid(cookie, time.Now()) {
+				c.Next()
+				return
 			}
 		}
-		if subtle.ConstantTimeCompare([]byte(key), want) != 1 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "unauthorized: invalid or missing API key",
-			})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized: invalid or missing API credential",
+		})
+	}
+}
+
+// AuthorityMiddleware rejects requests whose HTTP Host authority does not
+// identify the configured listener or an explicit loopback alias. This makes a
+// browser unable to carry a privileged opaque session through DNS rebinding to
+// the local daemon.
+func AuthorityMiddleware(configuredHost string, configuredPort int) gin.HandlerFunc {
+	if configuredPort <= 0 {
+		return func(c *gin.Context) { c.Next() }
+	}
+	allowedHosts := map[string]struct{}{
+		"localhost": {},
+		"127.0.0.1": {},
+		"::1":       {},
+	}
+	if host := strings.TrimSpace(strings.Trim(configuredHost, "[]")); host != "" {
+		allowedHosts[strings.ToLower(host)] = struct{}{}
+	}
+	return func(c *gin.Context) {
+		host, port, err := splitAuthority(c.Request.Host)
+		if err != nil || port != configuredPort {
+			c.AbortWithStatusJSON(http.StatusMisdirectedRequest, gin.H{"error": "unrecognized request authority"})
+			return
+		}
+		if _, ok := allowedHosts[strings.ToLower(host)]; !ok {
+			c.AbortWithStatusJSON(http.StatusMisdirectedRequest, gin.H{"error": "unrecognized request authority"})
 			return
 		}
 		c.Next()
 	}
 }
 
-// CorsMiddleware returns a Gin middleware that handles Cross-Origin Resource Sharing headers.
+func splitAuthority(authority string) (string, int, error) {
+	authority = strings.TrimSpace(authority)
+	if authority == "" {
+		return "", 0, fmt.Errorf("empty authority")
+	}
+	host, portText, err := net.SplitHostPort(authority)
+	if err != nil {
+		return "", 0, err
+	}
+	port, err := net.LookupPort("tcp", portText)
+	if err != nil {
+		return "", 0, err
+	}
+	return strings.Trim(host, "[]"), port, nil
+}
+
+// CorsMiddleware is also an origin gate for browser control requests. Unknown
+// non-empty origins are rejected rather than merely being denied response-read
+// permission by CORS.
 func CorsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	originSet := make(map[string]bool, len(allowedOrigins))
 	for _, o := range allowedOrigins {
@@ -66,12 +118,11 @@ func CorsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-
-		// Only ever reflect an explicitly allowed origin. There is no wildcard
-		// fallback: an unknown cross-origin caller receives no CORS grant, so
-		// the browser blocks it from reading responses. Credentials are enabled
-		// so the SameSite cookie flows on same-origin requests.
-		if origin != "" && originSet[origin] {
+		if origin != "" && !originSet[origin] {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "origin not allowed"})
+			return
+		}
+		if origin != "" {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
 			c.Header("Vary", "Origin")
@@ -90,15 +141,12 @@ func CorsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	}
 }
 
-// tokenBucket is a simple per-IP token bucket for rate limiting.
 type tokenBucket struct {
 	tokens     float64
 	lastRefill time.Time
 	mu         sync.Mutex
 }
 
-// RateLimitMiddleware returns a Gin middleware that enforces per-client rate limiting.
-// rps is the maximum number of requests per second per client IP.
 func RateLimitMiddleware(rps int) gin.HandlerFunc {
 	if rps <= 0 {
 		return func(c *gin.Context) { c.Next() }
@@ -107,7 +155,6 @@ func RateLimitMiddleware(rps int) gin.HandlerFunc {
 	buckets := make(map[string]*tokenBucket)
 	var mu sync.Mutex
 	rate := float64(rps)
-
 	lastSweep := time.Now()
 
 	return func(c *gin.Context) {
@@ -128,10 +175,7 @@ func RateLimitMiddleware(rps int) gin.HandlerFunc {
 		}
 		bucket, exists := buckets[ip]
 		if !exists {
-			bucket = &tokenBucket{
-				tokens:     rate,
-				lastRefill: time.Now(),
-			}
+			bucket = &tokenBucket{tokens: rate, lastRefill: time.Now()}
 			buckets[ip] = bucket
 		}
 		mu.Unlock()
@@ -149,9 +193,7 @@ func RateLimitMiddleware(rps int) gin.HandlerFunc {
 
 		if bucket.tokens < 1.0 {
 			c.Header("Retry-After", "1")
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error": "rate limit exceeded",
-			})
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "rate limit exceeded"})
 			return
 		}
 		bucket.tokens--
@@ -159,29 +201,22 @@ func RateLimitMiddleware(rps int) gin.HandlerFunc {
 	}
 }
 
-// RecoveryMiddleware returns a Gin middleware that recovers from panics
-// and returns a 500 Internal Server Error with structured error JSON.
 func RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("[PANIC] %v", r)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"error": "internal server error",
-				})
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			}
 		}()
 		c.Next()
 	}
 }
 
-// sanitizeQuery masks sensitive query parameter values (like api_key) to prevent log leakage.
 func sanitizeQuery(raw string) string {
 	return redact.String(raw)
 }
 
-// RequestLogger returns a Gin middleware that logs each incoming request
-// with method, path, status code, latency, and client IP using structured logging.
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -194,17 +229,12 @@ func RequestLogger() gin.HandlerFunc {
 		status := c.Writer.Status()
 		method := c.Request.Method
 		clientIP := c.ClientIP()
-
 		if raw != "" {
 			path = path + "?" + sanitizeQuery(raw)
 		}
-
-		// Skip health check noise
 		if strings.HasPrefix(path, "/health") {
 			return
 		}
-
-		log.Printf("[API] %s %s %d %s %s",
-			method, path, status, latency.Round(time.Millisecond), clientIP)
+		log.Printf("[API] %s %s %d %s %s", method, path, status, latency.Round(time.Millisecond), clientIP)
 	}
 }

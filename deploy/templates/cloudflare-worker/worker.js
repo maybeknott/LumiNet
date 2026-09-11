@@ -12,7 +12,7 @@
 
 import { connect } from 'cloudflare:sockets';
 
-const DEFAULT_UUID = 'your-secure-uuid-here';
+
 
 export default {
   async fetch(request, env, ctx) {
@@ -46,7 +46,12 @@ export default {
 async function handleWebSocketConnection(webSocket, request, env) {
   webSocket.accept();
 
-  const userUUID = env.UUID || DEFAULT_UUID;
+  // Fail closed: refuse to proxy until the operator configures a UUID.
+  const userUUID = env.UUID;
+  if (!userUUID) {
+    webSocket.close(1008, 'Edge node not configured: set the UUID environment variable');
+    return;
+  }
   let remoteSocket = null;
   let parsedHeader = false;
 
@@ -90,12 +95,24 @@ async function handleWebSocketConnection(webSocket, request, env) {
           offset += 4;
         } else if (addressType === 2) {
           // Domain Name (Length prefixed)
+          if (offset + 1 > buffer.length) {
+            webSocket.close(1002, 'VLESS Header length mismatch (missing domain length)');
+            return;
+          }
           const domainLen = buffer[offset];
           offset += 1;
+          if (offset + domainLen > buffer.length) {
+            webSocket.close(1002, 'VLESS Header length mismatch (truncated domain)');
+            return;
+          }
           address = new TextDecoder().decode(buffer.slice(offset, offset + domainLen));
           offset += domainLen;
         } else if (addressType === 3) {
           // IPv6 (16 bytes)
+          if (offset + 16 > buffer.length) {
+            webSocket.close(1002, 'VLESS Header length mismatch (truncated IPv6)');
+            return;
+          }
           const ipv6Bytes = buffer.slice(offset, offset + 16);
           address = bytesToIPv6(ipv6Bytes);
           offset += 16;
@@ -104,6 +121,10 @@ async function handleWebSocketConnection(webSocket, request, env) {
           return;
         }
 
+        if (offset + 2 > buffer.length) {
+          webSocket.close(1002, 'VLESS Header length mismatch (missing port)');
+          return;
+        }
         const port = (buffer[offset] << 8) | buffer[offset + 1];
         offset += 2;
 

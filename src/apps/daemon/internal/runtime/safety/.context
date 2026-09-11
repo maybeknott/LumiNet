@@ -8,11 +8,11 @@ Canonical safety-policy owner shared by HTTP, mobile, and runtime sidecars; one 
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (2): `safety.go`, `safety_test.go`
+- Direct files (20): `ban_supervisor.go`, `ban_supervisor_test.go`, `gateway_health.go`, `gateway_health_test.go`, `identity_evaluator.go`, `identity_evaluator_test.go`, `kernel_hardening.go`, `kernel_hardening_test.go`, `peer_acl_evaluator.go`, `peer_acl_evaluator_test.go`, `process_supervisor.go`, `process_supervisor_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `safety`.
-- Notable exported surface: `DefaultSettings`, `GetGovernor`, `Governor`, `NewGovernor`, `Settings`.
+- Notable exported surface: `AccessDecision`, `AccountBucket`, `BandwidthQuotaEnforcer`, `ClientBanSupervisor`, `DefaultSettings`, `GatewayHealthMonitor`, `GatewayMetric`, `GatewayState`, `GetGovernor`, `Governor` …
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/adapters/api`, `internal/adapters/mobilebind`.
 

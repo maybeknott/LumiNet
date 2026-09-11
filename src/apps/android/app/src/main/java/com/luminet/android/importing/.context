@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/importing
+
+## Purpose
+Handles Android-side import of LumiNet configuration and user-provided configuration artifacts.
+
+## Contents
+Contains parsers, import models, validation helpers, and application-facing import coordination code.
+
+## Interfaces and dependencies
+Receives external/user-controlled input and feeds validated configuration into Android application state or shared contracts.
+
+## Invariants
+Imported data is untrusted until validated, malformed input must fail without partial mutation, and successful imports must preserve documented configuration semantics.

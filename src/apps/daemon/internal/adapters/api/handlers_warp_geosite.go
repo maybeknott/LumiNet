@@ -517,7 +517,8 @@ func (s *Server) HandleCloudflareDeploy(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Script successfully deployed to Cloudflare Workers",
+		"status":   "success",
+		"verified": false,
+		"message":  "Cloudflare accepted the Worker script upload; runtime protocol behavior was not verified",
 	})
 }

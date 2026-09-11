@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/maybeknott/luminet/internal/foundation/boundedio"
 )
 
 // startEchoCarrier starts a minimal SOCKS5 echo server for testing.
@@ -209,7 +211,7 @@ func TestLanProxySharerHttpConnect(t *testing.T) {
 	c1, _ := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", sharer.port))
 	_, _ = c1.Write([]byte("CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n"))
 	reader1 := bufio.NewReader(c1)
-	line1, _ := reader1.ReadString('\n')
+	line1, _ := boundedio.ReadLine(reader1, maxLanHTTPLineBytes)
 	if !strings.Contains(line1, "407 Proxy Authentication Required") {
 		t.Fatalf("expected 407, got %s", line1)
 	}
@@ -223,12 +225,12 @@ func TestLanProxySharerHttpConnect(t *testing.T) {
 	_, _ = c2.Write([]byte(req))
 
 	reader2 := bufio.NewReader(c2)
-	line2, _ := reader2.ReadString('\n')
+	line2, _ := boundedio.ReadLine(reader2, maxLanHTTPLineBytes)
 	if !strings.Contains(line2, "200 Connection established") {
 		t.Fatalf("expected 200, got %s", line2)
 	}
 	// Read empty line
-	_, _ = reader2.ReadString('\n')
+	_, _ = boundedio.ReadLine(reader2, maxLanHTTPLineBytes)
 
 	// Test echo data through CONNECT tunnel
 	payload := []byte("secure-tls-handshake-bytes")

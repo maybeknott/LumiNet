@@ -5,6 +5,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; E=ROOT/'governance/convergence'
 DONORS=Path(os.environ.get('LUMINET_236_DONORS','/mnt/data/luminet236_work/donors'))
+if not DONORS.is_dir():
+ print(f'SKIP: post-refactor-236 donor archives not mounted at {DONORS}; the donor cross-check is machine-local and cannot run here.')
+ sys.exit(0)
 META=Path(os.environ.get('LUMINET_236_META','/mnt/data/luminet236_work/meta'))
 ORIG=Path(os.environ.get('LUMINET_236_ARCHIVES','/mnt/data'))
 errors=[]; assertions=0

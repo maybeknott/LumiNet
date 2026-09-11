@@ -4,7 +4,7 @@
 Route-level UI pages and product workflows.
 
 ## Contents
-- Direct files (10): `Capabilities.tsx`, `Connections.tsx`, `Dashboard.tsx`, `Dns.tsx`, `Health.tsx`, `Logs.tsx`, `Operations.tsx`, `Profiles.tsx`, `Rules.tsx`, `Settings.tsx`
+- Direct files (11): `Capabilities.tsx`, `Connections.tsx`, `Dashboard.tsx`, `Dns.tsx`, `Health.tsx`, `Logs.tsx`, `NetworkCockpit.tsx`, `Operations.tsx`, `Profiles.tsx`, `Rules.tsx`, `Settings.tsx`
 
 ## Interfaces and dependencies
 - React/TypeScript source; imports flow through Vite/TypeScript module resolution and daemon calls go through the browser API adapter.

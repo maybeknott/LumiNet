@@ -10,19 +10,24 @@ import (
 const maxDevcontainerPathBytes = 256
 
 var (
-	devcontainerUUID    = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
-	devcontainerVersion = regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$`)
+	devcontainerUUID      = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
+	devcontainerVersion   = regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$`)
+	devcontainerBaseImage = regexp.MustCompile(`^debian:bookworm-slim@sha256:[0-9a-fA-F]{64}$`)
+	devcontainerSHA256    = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
 )
 
 // VLESSDevcontainerSpec describes a generated, non-executing Xray + XHTTP
 // development bundle. The generator emits files only; provisioning and remote
 // execution remain owned by the existing provisioning workflow.
 type VLESSDevcontainerSpec struct {
-	UUID        string `json:"uuid"`
-	XrayVersion string `json:"xray_version"`
-	Port        int    `json:"port"`
-	Path        string `json:"path"`
-	Mode        string `json:"mode"`
+	UUID              string `json:"uuid"`
+	XrayVersion       string `json:"xray_version"`
+	BaseImage         string `json:"base_image"`
+	XraySHA256AMD64   string `json:"xray_sha256_amd64"`
+	XraySHA256ARM64   string `json:"xray_sha256_arm64"`
+	Port              int    `json:"port"`
+	Path              string `json:"path"`
+	Mode              string `json:"mode"`
 }
 
 type GeneratedFile struct {
@@ -38,6 +43,9 @@ type VLESSDevcontainerBundle struct {
 func GenerateVLESSDevcontainer(spec VLESSDevcontainerSpec) (VLESSDevcontainerBundle, error) {
 	spec.UUID = strings.TrimSpace(spec.UUID)
 	spec.XrayVersion = strings.TrimSpace(spec.XrayVersion)
+	spec.BaseImage = strings.TrimSpace(spec.BaseImage)
+	spec.XraySHA256AMD64 = strings.ToLower(strings.TrimSpace(spec.XraySHA256AMD64))
+	spec.XraySHA256ARM64 = strings.ToLower(strings.TrimSpace(spec.XraySHA256ARM64))
 	spec.Path = strings.TrimSpace(spec.Path)
 	spec.Mode = strings.ToLower(strings.TrimSpace(spec.Mode))
 	if !devcontainerUUID.MatchString(spec.UUID) {
@@ -51,6 +59,12 @@ func GenerateVLESSDevcontainer(spec VLESSDevcontainerSpec) (VLESSDevcontainerBun
 	}
 	if !strings.HasPrefix(spec.XrayVersion, "v") {
 		spec.XrayVersion = "v" + spec.XrayVersion
+	}
+	if !devcontainerBaseImage.MatchString(spec.BaseImage) {
+		return VLESSDevcontainerBundle{}, fmt.Errorf("base_image must be debian:bookworm-slim pinned by sha256 digest")
+	}
+	if !devcontainerSHA256.MatchString(spec.XraySHA256AMD64) || !devcontainerSHA256.MatchString(spec.XraySHA256ARM64) {
+		return VLESSDevcontainerBundle{}, fmt.Errorf("xray_sha256_amd64 and xray_sha256_arm64 must each be 64 hexadecimal characters")
 	}
 	if spec.Port == 0 {
 		spec.Port = 443
@@ -102,7 +116,12 @@ func GenerateVLESSDevcontainer(spec VLESSDevcontainerSpec) (VLESSDevcontainerBun
 		"name": "LumiNet VLESS XHTTP",
 		"build": map[string]any{
 			"dockerfile": "Dockerfile",
-			"args":       map[string]string{"XRAY_VERSION": spec.XrayVersion},
+			"args": map[string]string{
+				"BASE_IMAGE":         spec.BaseImage,
+				"XRAY_VERSION":       spec.XrayVersion,
+				"XRAY_SHA256_AMD64":  spec.XraySHA256AMD64,
+				"XRAY_SHA256_ARM64":  spec.XraySHA256ARM64,
+			},
 		},
 		"forwardPorts": []int{spec.Port},
 	}
@@ -111,13 +130,17 @@ func GenerateVLESSDevcontainer(spec VLESSDevcontainerSpec) (VLESSDevcontainerBun
 		return VLESSDevcontainerBundle{}, fmt.Errorf("encode devcontainer config: %w", err)
 	}
 
-	dockerfile := `FROM debian:bookworm-slim
+	dockerfile := `ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
 ARG XRAY_VERSION
+ARG XRAY_SHA256_AMD64
+ARG XRAY_SHA256_ARM64
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip \
     && rm -rf /var/lib/apt/lists/* \
     && arch="$(dpkg --print-architecture)" \
-    && case "$arch" in amd64) asset="Xray-linux-64.zip" ;; arm64) asset="Xray-linux-arm64-v8a.zip" ;; *) echo "unsupported architecture: $arch" >&2; exit 1 ;; esac \
-    && curl -fsSL "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/${asset}" -o /tmp/xray.zip \
+    && case "$arch" in amd64) asset="Xray-linux-64.zip"; expected="$XRAY_SHA256_AMD64" ;; arm64) asset="Xray-linux-arm64-v8a.zip"; expected="$XRAY_SHA256_ARM64" ;; *) echo "unsupported architecture: $arch" >&2; exit 1 ;; esac \
+    && curl --fail --show-error --silent --location --proto '=https' --tlsv1.2 "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/${asset}" -o /tmp/xray.zip \
+    && printf '%s  %s\n' "$expected" /tmp/xray.zip | sha256sum -c - \
     && unzip /tmp/xray.zip xray -d /usr/local/bin \
     && chmod 0755 /usr/local/bin/xray \
     && rm /tmp/xray.zip
@@ -140,7 +163,7 @@ ENTRYPOINT ["/usr/local/bin/xray", "run", "-config", "/etc/xray/config.json"]
 		Notes: []string{
 			"Generated bundle only; no remote mutation or deployment was performed.",
 			"XHTTP parameters are emitted through Xray streamSettings.method=xhttp and xhttpSettings.",
-			"The selected Xray release is pinned by the generated build argument.",
+			"The Debian base image is digest-pinned and both supported Xray archives are SHA-256 verified before extraction.",
 		},
 	}, nil
 }

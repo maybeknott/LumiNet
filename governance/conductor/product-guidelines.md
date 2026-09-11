@@ -15,5 +15,5 @@ LumiNet's visual identity represents high technical precision and resilience, op
 
 ## User Experience Principles
 - **Honest Diagnostic Feedback:** Present exact, un-truncated empirical network metrics rather than masked generic error screens.
-- **Zero Cloud Footprint:** Store all logs, telemetry, scan histories, and configurations locally inside encrypted SQLite databases.
+- **Local-First Data:** Store operational logs, telemetry, scan history, and configuration state locally. LumiNet does not claim application-layer encryption-at-rest for the operational SQLite databases; supported credentials and secrets belong in the platform secret store, while database files rely on private local filesystem permissions.
 - **Keyboard-First Traversability:** Fully accessible visual focus outlines for keyboard navigation.

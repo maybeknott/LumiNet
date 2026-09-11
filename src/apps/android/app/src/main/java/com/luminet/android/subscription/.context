@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/subscription
+
+## Purpose
+Owns Android application handling for LumiNet subscription/configuration feeds and their lifecycle.
+
+## Contents
+Contains subscription models, update/import coordination, and Android-facing helpers for consuming configured feeds.
+
+## Interfaces and dependencies
+Receives remote or user-configured subscription data and connects it to application configuration and persistence contracts.
+
+## Invariants
+Remote content is untrusted until validated, failed refreshes must not destroy the last known-good state, and updates must preserve transactional configuration semantics.

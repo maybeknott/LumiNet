@@ -8,6 +8,7 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -27,8 +28,17 @@ func ValidateAPIConfig(cfg *ServerConfig) error {
 			break
 		}
 	}
-	if cfg.Host != "" && !strings.HasPrefix(cfg.Host, "127.") && !strings.HasPrefix(cfg.Host, "::1") && cfg.Host != "localhost" {
-		errs = append(errs, fmt.Sprintf("host %q must be loopback (127.x.x.x) for privileged API", cfg.Host))
+	// The bind host must actually resolve to a loopback address. Parsing the
+	// address (rather than string-prefix matching) rejects hostnames that
+	// merely start with "127." while still accepting "localhost" and the
+	// bracketed IPv6 loopback spelling.
+	host := strings.TrimSpace(cfg.Host)
+	host = strings.Trim(host, "[]")
+	if host != "" && host != "localhost" {
+		ip := net.ParseIP(host)
+		if ip == nil || !ip.IsLoopback() {
+			errs = append(errs, fmt.Sprintf("host %q must be a loopback address (127.x.x.x or ::1) for privileged API", cfg.Host))
+		}
 	}
 
 	if len(errs) > 0 {

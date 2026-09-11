@@ -65,21 +65,38 @@ func (m *EvasionTunnelManager) handleSocksConnection(ctx context.Context, client
 	}()
 
 	buf := make([]byte, 256)
-	if _, err := io.ReadAtLeast(client, buf, 2); err != nil {
+	// SOCKS5 is a framed protocol. Read the fixed greeting header exactly;
+	// ReadAtLeast over the whole scratch buffer may consume the method byte (or
+	// even the following CONNECT request) and leave the next framed read blocked.
+	if _, err := io.ReadFull(client, buf[:2]); err != nil {
 		return
 	}
 	if buf[0] != 0x05 {
 		return
 	}
 	numMethods := int(buf[1])
-	if _, err := io.ReadAtLeast(client, buf[:numMethods], numMethods); err != nil {
+	if numMethods == 0 || numMethods > len(buf) {
+		return
+	}
+	if _, err := io.ReadFull(client, buf[:numMethods]); err != nil {
+		return
+	}
+	noAuthOffered := false
+	for _, method := range buf[:numMethods] {
+		if method == 0x00 {
+			noAuthOffered = true
+			break
+		}
+	}
+	if !noAuthOffered {
+		_, _ = client.Write([]byte{0x05, 0xff})
 		return
 	}
 	if _, err := client.Write([]byte{0x05, 0x00}); err != nil {
 		return
 	}
 
-	if _, err := io.ReadAtLeast(client, buf[:4], 4); err != nil {
+	if _, err := io.ReadFull(client, buf[:4]); err != nil {
 		return
 	}
 	if buf[0] != 0x05 {

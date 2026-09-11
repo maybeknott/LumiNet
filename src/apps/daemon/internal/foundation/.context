@@ -9,7 +9,7 @@ Deep shared state and policy primitives: configuration, cryptography, persistenc
 
 ## Contents
 - No direct source files; this folder is a namespace/organization node for child modules.
-- Child folders: `boundedio/`, `capabilities/`, `config/`, `crypto/`, `evidence/`, `flowregistry/`, `netpolicy/`, `pingcache/`, `redact/`, `remoteaction/`, `resourcebudget/`, `secrets/`, `store/`, `trafficstats/`, `updateadmission/`.
+- Child folders: `boundedio/`, `capabilities/`, `config/`, `crypto/`, `evidence/`, `flowregistry/`, `netpolicy/`, `pingcache/`, `redact/`, `remoteaction/`, `resourcebudget/`, `secrets/`, `store/`, `textconfusables/`, `trafficstats/`, `updateadmission/`.
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

@@ -31,11 +31,16 @@ var (
 )
 
 const (
-	VP8KeepaliveLen  = 20
-	VP8InterframeLen = 17
-	EpochFieldLen    = 4
-	KeepaliveHdrLen  = VP8KeepaliveLen + EpochFieldLen
-	InterframeHdrLen = VP8InterframeLen + EpochFieldLen
+	VP8KeepaliveLen             = 20
+	VP8InterframeLen            = 17
+	EpochFieldLen               = 4
+	KeepaliveHdrLen             = VP8KeepaliveLen + EpochFieldLen
+	InterframeHdrLen            = VP8InterframeLen + EpochFieldLen
+	webRTCNonceLen              = chacha20poly1305.NonceSizeX
+	webRTCTagLen                = 16
+	maxWebRTCWireFrame          = int(^uint16(0))
+	MaxWebRTCStegoPayload       = maxWebRTCWireFrame - InterframeHdrLen - webRTCNonceLen - webRTCTagLen
+	maxConsecutiveControlFrames = 1024
 )
 
 // DeriveSecretFromJoinLink extracts a room ID or token from a WebRTC/VoIP link
@@ -94,12 +99,28 @@ func NewWebRTCStegoObfuscator(secret []byte) (*WebRTCStegoObfuscator, error) {
 	}, nil
 }
 
-// EncodeKeepalive generates a VP8 keepalive frame containing the local epoch
+// EncodeKeepalive generates an authenticated VP8 keepalive frame containing the local epoch.
+// Keepalives use AEAD over an empty plaintext so a peer cannot forge control frames or epochs.
 func (o *WebRTCStegoObfuscator) EncodeKeepalive() []byte {
 	hdr := make([]byte, KeepaliveHdrLen)
 	copy(hdr[:VP8KeepaliveLen], VP8Keepalive)
 	binary.BigEndian.PutUint32(hdr[VP8KeepaliveLen:], o.localEpoch)
-	return hdr
+
+	nonce := make([]byte, webRTCNonceLen)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil
+	}
+	aead, err := chacha20poly1305.NewX(o.keyHash)
+	if err != nil {
+		return nil
+	}
+	tag := aead.Seal(nil, nonce, nil, hdr)
+
+	frame := make([]byte, 0, len(hdr)+len(nonce)+len(tag))
+	frame = append(frame, hdr...)
+	frame = append(frame, nonce...)
+	frame = append(frame, tag...)
+	return frame
 }
 
 // EncodeData encrypts a payload and packs it into a VP8 interframe synthetic signature
@@ -182,27 +203,23 @@ type DecodeResult struct {
 	Payload     []byte
 }
 
-// Decode decodes and parses incoming data as a WebRTC stego packet
+// Decode decodes and parses incoming data as a WebRTC stego packet.
 func (o *WebRTCStegoObfuscator) Decode(frame []byte) DecodeResult {
 	if len(frame) == 0 {
 		return DecodeResult{HasFrame: false}
 	}
 
-	firstByte := frame[0]
-	var hdrLen int
-	var epochOff int
-
-	if firstByte == VP8Keepalive[0] {
+	var hdrLen, epochOff int
+	var keepalive bool
+	switch {
+	case len(frame) >= KeepaliveHdrLen && bytes.Equal(frame[:VP8KeepaliveLen], VP8Keepalive):
 		hdrLen = KeepaliveHdrLen
 		epochOff = VP8KeepaliveLen
-	} else if firstByte == VP8Interframe[0] {
+		keepalive = true
+	case len(frame) >= InterframeHdrLen && bytes.Equal(frame[:VP8InterframeLen], VP8Interframe):
 		hdrLen = InterframeHdrLen
 		epochOff = VP8InterframeLen
-	} else {
-		return DecodeResult{HasFrame: false}
-	}
-
-	if len(frame) < hdrLen {
+	default:
 		return DecodeResult{HasFrame: false}
 	}
 
@@ -211,14 +228,31 @@ func (o *WebRTCStegoObfuscator) Decode(frame []byte) DecodeResult {
 		return DecodeResult{HasFrame: true, SelfEcho: true, PeerEpoch: peerEpoch}
 	}
 
-	res := DecodeResult{
-		HasFrame:    true,
-		SelfEcho:    false,
-		Keepalive:   false,
-		PeerRestart: false,
-		PeerEpoch:   peerEpoch,
+	body := frame[hdrLen:]
+	if len(body) < webRTCNonceLen+webRTCTagLen {
+		return DecodeResult{HasFrame: false}
+	}
+	nonce := body[:webRTCNonceLen]
+	ciphertext := body[webRTCNonceLen:]
+	aead, err := chacha20poly1305.NewX(o.keyHash)
+	if err != nil {
+		return DecodeResult{HasFrame: false}
 	}
 
+	var plaintext []byte
+	if keepalive {
+		plaintext, err = aead.Open(nil, nonce, ciphertext, frame[:hdrLen])
+		if err != nil || len(plaintext) != 0 {
+			return DecodeResult{HasFrame: false}
+		}
+	} else {
+		plaintext, err = aead.Open(nil, nonce, ciphertext, nil)
+		if err != nil {
+			return DecodeResult{HasFrame: false}
+		}
+	}
+
+	res := DecodeResult{HasFrame: true, Keepalive: keepalive, PeerEpoch: peerEpoch, Payload: plaintext}
 	o.mu.Lock()
 	if !o.hasPeer {
 		o.peerEpoch = peerEpoch
@@ -228,33 +262,6 @@ func (o *WebRTCStegoObfuscator) Decode(frame []byte) DecodeResult {
 		res.PeerRestart = true
 	}
 	o.mu.Unlock()
-
-	if len(frame) == hdrLen {
-		res.Keepalive = true
-		return res
-	}
-
-	body := frame[hdrLen:]
-	nonceSize := 24
-	tagSize := 16
-	if len(body) < nonceSize+tagSize {
-		return DecodeResult{HasFrame: false}
-	}
-
-	nonce := body[:nonceSize]
-	ciphertext := body[nonceSize:]
-
-	aead, err := chacha20poly1305.NewX(o.keyHash)
-	if err != nil {
-		return DecodeResult{HasFrame: false}
-	}
-
-	plaintext, err := aead.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return DecodeResult{HasFrame: false}
-	}
-
-	res.Payload = plaintext
 	return res
 }
 
@@ -285,23 +292,31 @@ func (c *WebRTCStegoConn) Write(b []byte) (int, error) {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 
-	frame, err := c.obfuscator.EncodeData(b)
-	if err != nil {
-		return 0, err
+	written := 0
+	for len(b) > 0 {
+		chunkLen := len(b)
+		if chunkLen > MaxWebRTCStegoPayload {
+			chunkLen = MaxWebRTCStegoPayload
+		}
+		frame, err := c.obfuscator.EncodeData(b[:chunkLen])
+		if err != nil {
+			return written, err
+		}
+		if len(frame) > maxWebRTCWireFrame {
+			return written, errors.New("WebRTC stego encoded frame exceeds uint16 wire limit")
+		}
+		var lengthBuf [2]byte
+		binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(frame)))
+		if _, err := io.Copy(c.Conn, bytes.NewReader(lengthBuf[:])); err != nil {
+			return written, err
+		}
+		if _, err := io.Copy(c.Conn, bytes.NewReader(frame)); err != nil {
+			return written, err
+		}
+		written += chunkLen
+		b = b[chunkLen:]
 	}
-
-	length := uint16(len(frame))
-	lengthBuf := make([]byte, 2)
-	binary.BigEndian.PutUint16(lengthBuf, length)
-
-	if _, err := c.Conn.Write(lengthBuf); err != nil {
-		return 0, err
-	}
-	if _, err := c.Conn.Write(frame); err != nil {
-		return 0, err
-	}
-
-	return len(b), nil
+	return written, nil
 }
 
 func (c *WebRTCStegoConn) Read(b []byte) (int, error) {
@@ -312,29 +327,32 @@ func (c *WebRTCStegoConn) Read(b []byte) (int, error) {
 		return c.readBuf.Read(b)
 	}
 
-	lengthBuf := make([]byte, 2)
-	if _, err := io.ReadFull(c.reader, lengthBuf); err != nil {
-		return 0, err
-	}
-	length := binary.BigEndian.Uint16(lengthBuf)
+	for skipped := 0; skipped <= maxConsecutiveControlFrames; skipped++ {
+		var lengthBuf [2]byte
+		if _, err := io.ReadFull(c.reader, lengthBuf[:]); err != nil {
+			return 0, err
+		}
+		length := binary.BigEndian.Uint16(lengthBuf[:])
+		if length == 0 {
+			return 0, errors.New("invalid zero-length WebRTC stego frame")
+		}
+		frame := make([]byte, int(length))
+		if _, err := io.ReadFull(c.reader, frame); err != nil {
+			return 0, err
+		}
 
-	frame := make([]byte, length)
-	if _, err := io.ReadFull(c.reader, frame); err != nil {
-		return 0, err
+		res := c.obfuscator.Decode(frame)
+		if !res.HasFrame {
+			return 0, errors.New("invalid or unauthenticated WebRTC stego frame")
+		}
+		if res.Keepalive || res.SelfEcho {
+			continue
+		}
+		if len(res.Payload) == 0 {
+			continue
+		}
+		c.readBuf.Write(res.Payload)
+		return c.readBuf.Read(b)
 	}
-
-	res := c.obfuscator.Decode(frame)
-	if !res.HasFrame {
-		return 0, io.ErrUnexpectedEOF
-	}
-
-	if res.Keepalive || res.SelfEcho {
-		c.readMu.Unlock()
-		n, err := c.Read(b)
-		c.readMu.Lock()
-		return n, err
-	}
-
-	c.readBuf.Write(res.Payload)
-	return c.readBuf.Read(b)
+	return 0, errors.New("WebRTC stego control-frame budget exceeded")
 }

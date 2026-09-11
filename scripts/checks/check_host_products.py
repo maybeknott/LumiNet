@@ -227,6 +227,17 @@ for source in sorted([*ui_src.rglob("*.ts"), *ui_src.rglob("*.tsx")]):
             base / "index.ts",
             base / "index.tsx",
         ]
+        # TypeScript's node16/bundler resolution maps ".js"-suffixed relative
+        # specifiers onto sibling ".ts"/".tsx" modules (the emitted-layout
+        # convention). Resolve that mapping before declaring the import dead.
+        if spec.endswith(".js"):
+            stem = Path(str(base)[:-3])
+            candidates += [
+                Path(str(stem) + ".ts"),
+                Path(str(stem) + ".tsx"),
+                stem / "index.ts",
+                stem / "index.tsx",
+            ]
         if not any(candidate.is_file() for candidate in candidates):
             errors.append(
                 f"unresolved control-ui relative import: {source.relative_to(ROOT)} -> {spec}"

@@ -8,11 +8,11 @@ Daemon resourcebudget implementation module.
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (2): `resourcebudget.go`, `resourcebudget_test.go`
+- Direct files (4): `kindness.go`, `kindness_test.go`, `resourcebudget.go`, `resourcebudget_test.go`
 
 ## Interfaces and dependencies
 - Go package: `resourcebudget`.
-- Notable exported surface: `Budget`, `Detect`, `For`, `Tier`.
+- Notable exported surface: `BackoffConfig`, `Budget`, `DefaultBackoffConfig`, `Detect`, `For`, `KindnessBudget`, `KindnessMode`, `KindnessStats`, `NewKindnessBudget`, `PortRange` …
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/analysis/diagnostics`, `internal/integrations/sub`.
 

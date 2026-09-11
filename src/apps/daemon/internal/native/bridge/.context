@@ -8,13 +8,13 @@ Go↔LumiCore native bridge, private C ABI header, shared-memory helpers, callba
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (17): `async_policy.go`, `async_policy_test.go`, `core.go`, `core_degraded.go`, `core_degraded_truth_test.go`, `disasm_test.go`, `errors.go`, `ffi.go`, `ffi_types.go`, `fuzz_test.go`, `lumicore_abi.h`, `shm_posix.go` …
+- Direct files (20): `async_policy.go`, `async_policy_test.go`, `core.go`, `core_degraded.go`, `core_degraded_truth_test.go`, `disasm_test.go`, `errors.go`, `ffi.go`, `ffi_types.go`, `fuzz_test.go`, `lumicore_abi.h`, `quic_scan.go` …
 
 ## Interfaces and dependencies
 - Go package: `bridge`.
 - Notable exported surface: `ABIVersion`, `Call`, `DisassemblePayload`, `DnsRecord`, `DnsResolve`, `DnsResolveWithTimeout`, `DnsServerResult`, `ErrBufTooSmall`, `ErrNativeCoreUnavailable`, `FfiCallbackHandler` …
 - Daemon-local dependencies: none.
-- Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/protocols/tarpit`, `internal/runtime/proxy`, `internal/workflows/jobs`.
+- Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/analysis/diagnostics`, `internal/protocols/tarpit`, `internal/runtime/proxy`, `internal/workflows/jobs`.
 
 ## Invariants
 - Rust owns native implementations/layout; lumicore_abi.h is the single Go declaration authority.

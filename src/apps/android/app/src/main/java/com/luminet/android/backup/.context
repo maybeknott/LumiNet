@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/backup
+
+## Purpose
+Owns Android application logic for exporting, importing, or restoring LumiNet backup state.
+
+## Contents
+Contains Kotlin/Java backup models and helpers that translate persisted application state to and from backup representations.
+
+## Interfaces and dependencies
+Called by Android application flows and depends on the app's persistence/configuration contracts and platform storage APIs where required.
+
+## Invariants
+Backup operations must not silently discard unknown or invalid state, must surface failures, and must avoid exposing secret material beyond the intended backup contract.

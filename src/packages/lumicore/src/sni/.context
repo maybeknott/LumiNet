@@ -4,7 +4,7 @@
 SNI/TLS hostname probing helpers.
 
 ## Contents
-- Direct files (3): `detector.rs`, `mod.rs`, `spoofer.rs`
+- Direct files (6): `detector.rs`, `domain_fronting_engine.rs`, `mod.rs`, `sni_fragmentation_injector.rs`, `spoofer.rs`, `wire_sniffer.rs`
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

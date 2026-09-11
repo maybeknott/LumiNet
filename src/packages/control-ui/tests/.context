@@ -1,0 +1,13 @@
+# src/packages/control-ui/tests
+
+## Purpose
+Groups Control UI automated behavior tests that validate user-visible and integration contracts beyond isolated unit logic.
+
+## Contents
+Contains end-to-end test suites, fixtures, and test-only support beneath feature-specific test directories.
+
+## Interfaces and dependencies
+Executed by frontend test tooling against the built/development Control UI with mocked or controlled backend/network dependencies as configured.
+
+## Invariants
+Tests are non-production assets, must be deterministic and isolated, must clean up routes/state they install, and should assert observable contracts rather than incidental implementation details.

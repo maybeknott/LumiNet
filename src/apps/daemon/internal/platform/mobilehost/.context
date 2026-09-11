@@ -8,11 +8,11 @@ Shared mobile platform seam: socket protection, process lookup, and protected di
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (5): `captive_portal.go`, `host.go`, `host_test.go`, `tun2socks_adapter.go`, `tun2socks_test.go`
+- Direct files (19): `autonomous_global_proxy_supervisor.go`, `autonomous_global_proxy_supervisor_test.go`, `captive_portal.go`, `core_engine_supervisor.go`, `core_engine_supervisor_test.go`, `desktop_client_manager.go`, `desktop_client_manager_test.go`, `dnsblocker.go`, `dnsblocker_test.go`, `host.go`, `host_test.go`, `mobile_engine_provider.go` …
 
 ## Interfaces and dependencies
 - Go package: `mobilehost`.
-- Notable exported surface: `Dial`, `DialContext`, `Dialer`, `FindProcessConnection`, `ProcessFinder`, `ProtectSocket`, `RegisterProcessFinder`, `RegisterSocketProtector`, `SetCaptivePortalCallback`, `SocketProtector` …
+- Notable exported surface: `AutonomousGlobalProxySupervisor`, `CoreEngineSupervisor`, `DNSBlocker`, `DaemonEngineState`, `DesktopClientManager`, `DesktopStatus`, `Dial`, `DialContext`, `Dialer`, `EngineProcessMetrics` …
 - Daemon-local dependencies: `internal/platform/system/nat`.
 - Direct daemon callers: `internal/adapters/mobilebind`, `internal/platform/system`, `internal/runtime/mobilecore`, `internal/runtime/proxy`.
 

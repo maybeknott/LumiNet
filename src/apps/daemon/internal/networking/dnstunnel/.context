@@ -8,11 +8,11 @@ Daemon dnstunnel implementation module.
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (5): `deployment_plan.go`, `deployment_plan_test.go`, `plan.go`, `plan_test.go`, `reliability.go`
+- Direct files (11): `deployment_plan.go`, `deployment_plan_test.go`, `hardware_advisor.go`, `hardware_advisor_test.go`, `mtu_probe.go`, `mtu_probe_test.go`, `plan.go`, `plan_test.go`, `reliability.go`, `resolver_balancer.go`, `resolver_balancer_test.go`
 
 ## Interfaces and dependencies
 - Go package: `dnstunnel`.
-- Notable exported surface: `BuildDeploymentPlan`, `BuildPlan`, `DNSRecordPlan`, `DeploymentPlan`, `DeploymentPlanRequest`, `Plan`, `PlanRequest`, `ReliabilityPlan`, `ResolverObservation`, `ResolverPlan`.
+- Notable exported surface: `AdviseClient`, `AdviseServer`, `Balancer`, `BalancerMode`, `BuildDeploymentPlan`, `BuildPlan`, `ClientHardwareProfile`, `ClientRecommendation`, `DNSRecordPlan`, `DeploymentPlan` …
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/adapters/api`.
 

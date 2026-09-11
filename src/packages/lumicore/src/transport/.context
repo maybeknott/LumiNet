@@ -4,7 +4,7 @@
 Native transport implementations.
 
 ## Contents
-- Direct files (27): `circuit_shift.rs`, `dns_tunnel.rs`, `domain_fronter.rs`, `ebpf_interceptor.rs`, `ebpf_redirector.rs`, `exodus.rs`, `fte_obfuscator.rs`, `http_steg.rs`, `http_tunnel.rs`, `icmp.rs`, `ip_packet.rs`, `mod.rs` …
+- Direct files (75): `adaptive_protocol_matrix.rs`, `brutal_pacer.rs`, `camouflage_stream_masquerader.rs`, `circuit_shift.rs`, `covert_dead_drop.rs`, `covert_envelope.rs`, `decoy_http_tunnel.rs`, `dns_fragment_store.rs`, `dns_tunnel.rs`, `domain_fronter.rs`, `dual_backend_controller.rs`, `ebpf_interceptor.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

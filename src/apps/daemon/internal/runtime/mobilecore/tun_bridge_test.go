@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -54,8 +55,15 @@ func TestDupFd(t *testing.T) {
 		t.Fatalf("expected error for negative fd")
 	}
 
-	// Valid fd
-	newFd, err := DupFd(10)
+	// Descriptor numbers are process-layout dependent. Open a known-valid
+	// descriptor rather than assuming an arbitrary number such as 10 is live.
+	file, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("open test descriptor: %v", err)
+	}
+	defer file.Close()
+
+	newFd, err := DupFd(int(file.Fd()))
 	if err != nil {
 		t.Fatalf("unexpected error for valid fd: %v", err)
 	}

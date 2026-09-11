@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -21,28 +22,32 @@ func FetchLinksFromTelegramChannel(ctx context.Context, channel string) ([]strin
 		targetURL = fmt.Sprintf("https://t.me/s/%s", channel)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
-	if err != nil {
-		return nil, err
+	// Normalize the legacy plain-http spelling of the public channel
+	// preview endpoint to HTTPS; every other non-HTTPS URL is rejected by
+	// the egress boundary below.
+	if parsed, parseErr := url.Parse(targetURL); parseErr == nil && parsed.Scheme == "http" && parsed.Hostname() == "t.me" {
+		parsed.Scheme = "https"
+		targetURL = parsed.String()
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	// Route the fetch through the SSRF-safe egress boundary: HTTPS-only,
+	// no user info, no environment proxies, public-address resolution
+	// gate, redirect budget, and bounded response bodies. A caller-supplied
+	// URL must never reach loopback, link-local, or metadata endpoints.
+	egress := NewEgress(EgressConfig{
+		Enabled:   true,
+		Timeout:   10 * time.Second,
+		UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+	})
+	resp, err := egress.Fetch(ctx, targetURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch telegram page: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("telegram returned status %d", resp.StatusCode)
 	}
-
-	bodyBytes, err := readBoundedSubscriptionBody(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read telegram page: %w", err)
-	}
-	body := string(bodyBytes)
+	body := string(resp.Body)
 
 	// Clean HTML
 	body = regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body, " ")

@@ -9,6 +9,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"github.com/maybeknott/luminet/internal/foundation/boundedio"
 )
 
 // Protocol kind constants.
@@ -285,10 +286,18 @@ type HTTPProxyRequest struct {
 	IsConnect bool
 }
 
+// maxHTTPRequestLineBytes bounds the initial HTTP request line; longer lines
+// are rejected so a peer that never terminates the line cannot grow the
+// reader without bound.
+const maxHTTPRequestLineBytes = 16 << 10
+
 // ParseHTTPProxyRequest parses the initial HTTP request line.
 func ParseHTTPProxyRequest(reader *bufio.Reader) (*HTTPProxyRequest, error) {
-	line, err := reader.ReadString('\n')
+	line, err := boundedio.ReadLine(reader, maxHTTPRequestLineBytes)
 	if err != nil {
+		if errors.Is(err, boundedio.ErrLineTooLong) {
+			return nil, errors.New("http: request line too long")
+		}
 		return nil, err
 	}
 	line = strings.TrimRight(line, "\r\n")

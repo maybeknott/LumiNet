@@ -8,11 +8,11 @@ Primary evasion and proxy-qualification runtime. Owns evasion lifecycle/dialing/
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (142): `accept_backoff.go`, `accept_backoff_test.go`, `adaptive_dialer.go`, `adaptive_dialer_test.go`, `auto_reconnect.go`, `brook_transport.go`, `brook_transport_test.go`, `circular_cache.go`, `circular_cache_test.go`, `config_watcher.go`, `core_manager.go`, `core_manager_test.go` …
+- Direct files (155): `accept_backoff.go`, `accept_backoff_test.go`, `adaptive_dialer.go`, `adaptive_dialer_test.go`, `auto_reconnect.go`, `brook_codec.go`, `brook_codec_test.go`, `brook_transport.go`, `brook_transport_test.go`, `circular_cache.go`, `circular_cache_test.go`, `config_watcher.go` …
 
 ## Interfaces and dependencies
 - Go package: `proxy`.
-- Notable exported surface: `AdaptiveDialer`, `AddDiagnosticTrace`, `AggregatedFlow`, `AndroidVPNExclusionManager`, `AtomicNoizeWireGuardConn`, `BetterEndpointQuality`, `BrookConn`, `ClearConnSeq`, `ClearDiagnosticTraces`, `ClearRedirectRules` …
+- Notable exported surface: `AdaptiveDialer`, `AddDiagnosticTrace`, `AggregatedFlow`, `AndroidVPNExclusionManager`, `AtomicNoizeWireGuardConn`, `BetterEndpointQuality`, `BrookCodec`, `BrookConn`, `BrookRequest`, `BrookTargetType` …
 - Daemon-local dependencies: `internal/foundation/boundedio`, `internal/foundation/config`, `internal/foundation/crypto`, `internal/foundation/flowregistry`, `internal/foundation/remoteaction`, `internal/foundation/trafficstats`, `internal/integrations/relayclient`, `internal/native/bridge`, `internal/networking/geoip`, `internal/networking/kcppolicy`, `internal/networking/proxyconfig`, `internal/networking/tlsdecoy`, `internal/platform/mobilehost`, `internal/platform/process`, `internal/platform/sshtrust`, `internal/platform/system`, `internal/protocols/asyncreactor`, `internal/protocols/tlsfragment`, `internal/runtime/trust`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/runtime/mobilecore`, `internal/workflows/jobs`.
 

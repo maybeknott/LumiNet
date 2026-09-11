@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"sort"
 	"sync"
 	"time"
 )
@@ -67,10 +68,12 @@ func (p *PathMetrics) RecordHeartbeatReply(latencyMs float64, lost bool) {
 	p.LossPercentage = p.LossPercentage*0.9 + lossSample*0.1
 	p.LastHeartbeat = time.Now()
 
-	if p.LossPercentage > 50.0 {
-		p.State = PathStateDegraded
-	} else if p.LossPercentage > 90.0 {
+	// Test the most severe threshold first; otherwise values above 90% also
+	// satisfy the degraded condition and PathStateDown is unreachable.
+	if p.LossPercentage > 90.0 {
 		p.State = PathStateDown
+	} else if p.LossPercentage > 50.0 {
+		p.State = PathStateDegraded
 	} else {
 		p.State = PathStateActive
 	}
@@ -113,6 +116,7 @@ func (m *MultipathTunnelManager) ActivePaths() []uint32 {
 			active = append(active, id)
 		}
 	}
+	sort.Slice(active, func(i, j int) bool { return active[i] < active[j] })
 	return active
 }
 
@@ -130,6 +134,11 @@ func (m *MultipathTunnelManager) SelectPathForEgress() (uint32, error) {
 	if len(active) == 0 {
 		return 0, errors.New("no active paths available")
 	}
+
+	// Map iteration order is deliberately randomized in Go. Stable ordering is
+	// required for round-robin to advance across paths instead of occasionally
+	// selecting the same path twice as the map order changes between calls.
+	sort.Slice(active, func(i, j int) bool { return active[i] < active[j] })
 
 	switch m.Mode {
 	case BondingRoundRobin:

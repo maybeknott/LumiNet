@@ -50,26 +50,28 @@ func TestAdaptiveDialer_Success(t *testing.T) {
 	}
 }
 
-func TestAdaptiveDialer_Escalation(t *testing.T) {
-	// Use an unreachable port or IP to force standard dial failure,
-	// which triggers the raw bypass escalation.
+func TestAdaptiveDialer_EscalationFailsClosedWithoutRawBypass(t *testing.T) {
+	// Force the ordinary TCP stage to fail. Raw bypass is a platform/capability
+	// dependent feature; when it cannot be installed, Dial must surface that
+	// failure rather than fabricate a usable connection.
 	dialer := &AdaptiveDialer{
 		ProxyHost: "127.0.0.1",
-		ProxyPort: 1, // Unreachable port
+		ProxyPort: 1,
 		UTLSConfig: tlsfragment.UTLSFragmentConfig{
 			Strategy: tlsfragment.StrategyNone,
 		},
 		Timeout: 500 * time.Millisecond,
 	}
 
-	// This should attempt DialRawBypass and return a connection (err == nil)
 	conn, err := dialer.Dial(context.Background())
-	if err != nil {
-		t.Fatalf("expected Dial to fallback to raw bypass and return connection, got: %v", err)
+	if err == nil {
+		if conn != nil {
+			_ = conn.Close()
+		}
+		t.Fatal("expected adaptive dial to fail closed when no usable raw-bypass path is available")
 	}
-	defer conn.Close()
-
-	if conn == nil {
-		t.Errorf("expected connection to be non-nil")
+	if conn != nil {
+		_ = conn.Close()
+		t.Fatal("failed adaptive dial returned a non-nil connection")
 	}
 }

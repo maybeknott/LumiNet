@@ -22,7 +22,10 @@ type SSHRunner struct {
 
 const maxSSHCommandOutput = 1 << 20 // 1 MiB per remote command
 
-var aptPackageVersionPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.+:~_-]*$`)
+var (
+	aptPackageVersionPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.+:~_-]*$`)
+	runtimeImageIDPattern    = regexp.MustCompile(`^sha256:[a-fA-F0-9]{64}$`)
+)
 
 type remoteCommandRunner interface {
 	Run(context.Context, string) (string, error)
@@ -36,10 +39,37 @@ func aptCandidateVersion(output string) (string, error) {
 	return version, nil
 }
 
-// installDockerFromTrustedRepo deliberately supports one auditable automatic
-// bootstrap path. apt verifies repository metadata/signatures and the exact
-// candidate version is pinned into the install command. Other host families
-// must preinstall Docker instead of executing mutable remote installer code.
+func validateRuntimeImageEvidence(output string) error {
+	expected := map[string]bool{
+		"3xui_app":      false,
+		"3xui_tor":      false,
+		"3xui_postgres": false,
+	}
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			return fmt.Errorf("malformed deployed image evidence line %q", line)
+		}
+		name := strings.TrimPrefix(fields[0], "/")
+		if _, ok := expected[name]; !ok {
+			return fmt.Errorf("unexpected deployed container %q in image evidence", name)
+		}
+		if !runtimeImageIDPattern.MatchString(fields[1]) {
+			return fmt.Errorf("container %s reported non-immutable image ID %q", name, fields[1])
+		}
+		expected[name] = true
+	}
+	for name, seen := range expected {
+		if !seen {
+			return fmt.Errorf("missing deployed image ID for container %s", name)
+		}
+	}
+	return nil
+}
+
 func installDockerFromTrustedRepo(ctx context.Context, runner remoteCommandRunner, logger *ProvisionLogger) error {
 	if _, err := runner.Run(ctx, "command -v apt-get >/dev/null 2>&1 && command -v apt-cache >/dev/null 2>&1"); err != nil {
 		return fmt.Errorf("automatic Docker bootstrap is supported only on apt-based Debian/Ubuntu hosts; install Docker before provisioning")
@@ -66,9 +96,6 @@ func installDockerFromTrustedRepo(ctx context.Context, runner remoteCommandRunne
 	return nil
 }
 
-// boundedCapture stores only the prefix callers are allowed to retain while
-// reporting successful writes to the SSH session. Remote output is untrusted;
-// a hostile or misconfigured host must not grow daemon memory without bound.
 type boundedCapture struct {
 	buf       bytes.Buffer
 	remaining int
@@ -165,10 +192,6 @@ func (s *SSHRunner) Run(ctx context.Context, command string) (string, error) {
 
 	stdout := newBoundedCapture(maxSSHCommandOutput)
 	session.Stdout = stdout
-	// Remote stderr is intentionally not retained. Commands can contain
-	// generated credentials and many tools echo their invocation/configuration
-	// on failure. Returning the raw command or stderr would move those values
-	// into job history and API-visible error strings.
 	session.Stderr = io.Discard
 
 	done := make(chan error, 1)
@@ -189,11 +212,6 @@ func (s *SSHRunner) Run(ctx context.Context, command string) (string, error) {
 	}
 }
 
-// RunScript executes a bounded shell program over stdin rather than embedding
-// the program in the remote command line. Provisioning scripts contain
-// generated credentials; keeping the command itself constant prevents those
-// credentials from leaking through process listings, SSH diagnostics, or
-// command-history style observability on the remote host.
 func (s *SSHRunner) RunScript(ctx context.Context, script string) (string, error) {
 	if len(script) == 0 {
 		return "", fmt.Errorf("remote script is empty")
@@ -231,6 +249,11 @@ func (s *SSHRunner) RunScript(ctx context.Context, script string) (string, error
 }
 
 func ProvisionVPS(ctx context.Context, cfg VpsConfig, logger *ProvisionLogger) error {
+	// Validate immutable runtime inputs before any remote or Cloudflare mutation.
+	if err := cfg.validateRuntimeSupplyChain(); err != nil {
+		return fmt.Errorf("invalid VPS runtime supply chain: %w", err)
+	}
+
 	if cfg.CFToken != "" && cfg.Domain != "" {
 		logger.Logf("DNS check: Pointing domain %s to VPS IP %s on Cloudflare...", cfg.Domain, cfg.IP)
 		cf := NewCFClient(cfg.CFToken)
@@ -244,8 +267,6 @@ func ProvisionVPS(ctx context.Context, cfg VpsConfig, logger *ProvisionLogger) e
 			} else {
 				logger.Logf("Cloudflare DNS: A-record pointed %s -> %s successfully!", cfg.Domain, cfg.IP)
 			}
-
-			// Hardening: enforce strict SSL Mode on Cloudflare zone
 			err = cf.SetSSLModeStrict(ctx, zoneID)
 			if err != nil {
 				logger.Logf("Cloudflare SSL warning: failed to set Strict SSL mode: %v", err)
@@ -300,14 +321,13 @@ func ProvisionVPS(ctx context.Context, cfg VpsConfig, logger *ProvisionLogger) e
 		composeCmd = "docker compose"
 	}
 
-	// Render configs
 	postgresPass, err := generateProvisionSecret()
 	if err != nil {
 		return err
 	}
 	composeContent := fmt.Sprintf(`services:
   3xui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
+    image: %s
     container_name: 3xui_app
     cap_add:
       - NET_ADMIN
@@ -335,7 +355,7 @@ func ProvisionVPS(ctx context.Context, cfg VpsConfig, logger *ProvisionLogger) e
     container_name: 3xui_tor
     restart: unless-stopped
   postgres:
-    image: postgres:16-alpine
+    image: %s
     container_name: 3xui_postgres
     environment:
       POSTGRES_USER: xui
@@ -344,20 +364,22 @@ func ProvisionVPS(ctx context.Context, cfg VpsConfig, logger *ProvisionLogger) e
     volumes:
       - /opt/3xui/pgdata/:/var/lib/postgresql/data
     restart: unless-stopped
-`, postgresPass, postgresPass)
+`, cfg.ThreeXUIImage, postgresPass, cfg.PostgresImage, postgresPass)
 
-	dockerfileContent := `FROM alpine:latest
-RUN apk add --no-cache tor && mkdir -p /var/lib/tor && chown -R tor /var/lib/tor
+	dockerfileContent := fmt.Sprintf(`FROM %s
+RUN apk add --no-cache tor=%s && mkdir -p /var/lib/tor && chown -R tor /var/lib/tor
 COPY torrc /etc/tor/torrc
 USER tor
 EXPOSE 9050
-CMD ["tor", "-f", "/etc/tor/torrc"]`
+CMD ["tor", "-f", "/etc/tor/torrc"]`, cfg.AlpineImage, cfg.TorAPKVersion)
 
 	torrcContent := `SocksPort 0.0.0.0:9050
 SocksPolicy accept *
 Log notice stdout
 DataDirectory /var/lib/tor`
 
+	logger.Logf("Using immutable VPS images: 3x-ui=%s postgres=%s alpine=%s", cfg.ThreeXUIImage, cfg.PostgresImage, cfg.AlpineImage)
+	logger.Logf("Using explicit Tor package version: %s", cfg.TorAPKVersion)
 	logger.Log("Preparing an atomic managed 3x-ui configuration generation...")
 	if _, err := runner.Run(ctx, "command -v bash >/dev/null 2>&1 && command -v base64 >/dev/null 2>&1 && command -v mktemp >/dev/null 2>&1 && command -v find >/dev/null 2>&1"); err != nil {
 		return fmt.Errorf("remote host lacks required transactional provisioning tools: %w", err)
@@ -378,11 +400,21 @@ DataDirectory /var/lib/tor`
 	case <-time.After(10 * time.Second):
 	}
 
-	logger.Log("Verifying 3x-ui port listening on VPS...")
+	logger.Log("Verifying running VPS containers and immutable image identities...")
 	out, err := runner.Run(ctx, "docker ps --format '{{.Names}} - {{.Status}}'")
-	if err == nil {
-		logger.Logf("Running containers:\n%s", out)
+	if err != nil {
+		return fmt.Errorf("verify running containers: %w", err)
 	}
+	logger.Logf("Running containers:\n%s", out)
+
+	imageEvidence, err := runner.Run(ctx, "docker inspect --format '{{.Name}} {{.Image}}' 3xui_app 3xui_tor 3xui_postgres")
+	if err != nil {
+		return fmt.Errorf("capture deployed image IDs: %w", err)
+	}
+	if err := validateRuntimeImageEvidence(imageEvidence); err != nil {
+		return fmt.Errorf("invalid deployed image evidence: %w", err)
+	}
+	logger.Logf("Deployed image IDs:\n%s", imageEvidence)
 
 	return nil
 }

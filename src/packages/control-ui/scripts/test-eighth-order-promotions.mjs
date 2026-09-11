@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const connections = readFileSync(new URL('../src/pages/Connections.tsx', import.meta.url), 'utf8');

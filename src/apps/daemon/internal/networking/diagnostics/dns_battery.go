@@ -26,7 +26,7 @@ type DNSScanner struct {
 
 // NewDNSScanner builds a scanner with sensible defaults.
 func NewDNSScanner(resolverIP string) *DNSScanner {
-	s := &DNSScanner{
+	return &DNSScanner{
 		ResolverIP:   resolverIP,
 		Timeout:      8 * time.Second,
 		KnownGoodIPs: []string{},
@@ -36,7 +36,6 @@ func NewDNSScanner(resolverIP string) *DNSScanner {
 			"github.com",
 		},
 	}
-	return s
 }
 
 // SetTimeout overrides the query timeout.
@@ -51,8 +50,8 @@ func (s *DNSScanner) AddKnownGoodIP(ip string) {
 type BatteryResult struct {
 	DNSSEC DNSSECTestResult
 	EDNS0  EDNSTestResult
-	Hijack  HijackTestResult
-	Meta    BatteryMeta
+	Hijack HijackTestResult
+	Meta   BatteryMeta
 }
 
 // BatteryMeta contains metadata about the battery run itself.
@@ -73,7 +72,6 @@ func (s *DNSScanner) RunBattery(ctx context.Context) BatteryResult {
 	var edns0Res EDNSTestResult
 	var hijackRes HijackTestResult
 	var mu sync.Mutex
-	var errors []string
 
 	start := time.Now()
 
@@ -102,15 +100,26 @@ func (s *DNSScanner) RunBattery(ctx context.Context) BatteryResult {
 
 	wg.Wait()
 
+	var errs []string
+	for _, failure := range dnssecRes.Failures {
+		errs = append(errs, "dnssec: "+failure)
+	}
+	for _, failure := range edns0Res.Failures {
+		errs = append(errs, "edns0: "+failure)
+	}
+	for _, failure := range hijackRes.Failures {
+		errs = append(errs, "hijack: "+failure)
+	}
+
 	return BatteryResult{
 		DNSSEC: dnssecRes,
 		EDNS0:  edns0Res,
-		Hijack:  hijackRes,
+		Hijack: hijackRes,
 		Meta: BatteryMeta{
 			ResolverIP:   s.ResolverIP,
 			Duration:     time.Since(start),
 			TargetsCount: len(s.TestTargets),
-			Errors:       errors,
+			Errors:       errs,
 		},
 	}
 }
@@ -121,11 +130,11 @@ func (s *DNSScanner) RunBattery(ctx context.Context) BatteryResult {
 
 // DNSSECTestResult holds the outcome of the DNSSEC capability check.
 type DNSSECTestResult struct {
-	Secure   bool     // resolver performed DNSSEC validation.
-	AD       bool     // AD (authentic data) bit was set in responses.
-	CD       bool     // CD (checking disabled) bit observed.
-	CDPSkipped bool   // resolver stripped CD (DNSSEC checking disabled) requests.
-	Failures []string // domains that failed validation when expected secure.
+	Secure     bool     // resolver performed DNSSEC validation.
+	AD         bool     // AD (authentic data) bit was set in responses.
+	CD         bool     // CD (checking disabled) bit observed.
+	CDPSkipped bool     // resolver stripped CD (DNSSEC checking disabled) requests.
+	Failures   []string // domains that failed validation when expected secure.
 }
 
 // DNSSECTestDomain is a well-known domain with known DNSSEC status.
@@ -148,19 +157,14 @@ func (s *DNSScanner) runDNSSECCheck(ctx context.Context) DNSSECTestResult {
 	}
 	// Flags are at bytes 2-3.
 	flags := binary.BigEndian.Uint16(resp[2:4])
-	// Bit 15 (0x8000): QR (response)
-	// Bit 11 (0x0800): RD (recursion desired)
-	// Bit 10 (0x0400): RA (recursion available)
-	// Bit  7 (0x0080): CD (checking disabled)
-	// Bit  5 (0x0020): AD (authentic data)
 	res.AD = flags&0x0020 != 0
-	res.CD = flags&0x0080 != 0
+	res.CD = flags&0x0010 != 0
 	res.Secure = res.AD
 
-	// Check for a bogus DNSSEC response using a deliberately invalid signature.
+	// Check a deliberately bogus DNSSEC name. A validating resolver normally
+	// rejects it with SERVFAIL or returns it without the AD bit.
 	_, _, err = s.queryDNS(ctx, "valid-secp256k1.nil.dnssec.works.", 1, true)
 	if err != nil {
-		// A resolver performing validation should either return SERVFAIL or the AD bit clear.
 		res.Failures = append(res.Failures, fmt.Sprintf("DNSSEC validation query returned error (expected): %v", err))
 	}
 	return res
@@ -182,65 +186,23 @@ type EDNSTestResult struct {
 // carries one back, indicating the resolver understands EDNS0.
 func (s *DNSScanner) runEDNS0Check(ctx context.Context) EDNSTestResult {
 	res := EDNSTestResult{}
-	// Query a well-known domain with DO=1 (DNSSEC OK) + EDNS0 buffer.
 	resp, _, err := s.queryDNS(ctx, DNSSECTestDomain, 1, true)
 	if err != nil {
 		res.Failures = append(res.Failures, fmt.Sprintf("EDNS0 query failed: %v", err))
 		return res
 	}
-	if len(resp) >= 12 {
-		// Look for the EDNS0 OPT record in the additional section.
-		arCount := int(binary.BigEndian.Uint16(resp[10:12]))
-		if arCount > 0 {
-			res.Supported = true
-		}
+	if size, ok := parseEDNS0PayloadSize(resp); ok {
+		res.Supported = true
+		res.ResponseSize = int(size)
 	}
 
-	// Also test with a large UDP bufsize request (RFC 6891 §7).
-	// Build a minimal query with an EDNS0 option.
+	// Also test with a large UDP bufsize request (RFC 6891 section 7).
 	q := s.buildQueryWithEDNS0(DNSSECTestDomain, 4096)
 	rawResp, _, err := s.rawQuery(ctx, q)
-	if err == nil && len(rawResp) > 12 {
-		// Check additional section for OPT record.
-		arCount := int(binary.BigEndian.Uint16(rawResp[10:12]))
-		if arCount > 0 {
+	if err == nil {
+		if size, ok := parseEDNS0PayloadSize(rawResp); ok {
 			res.Supported = true
-			// Try to extract the bufsize from the OPT record.
-			// OPT record starts at offset after question section.
-			offset := 12
-			qdCount := int(binary.BigEndian.Uint16(rawResp[4:6]))
-			for i := 0; i < qdCount && offset < len(rawResp); i++ {
-				offset = skipDNSName(rawResp, offset)
-				if offset+4 > len(rawResp) {
-					break
-				}
-				offset += 4
-			}
-			// Now in the additional section; look for TYPE 41 (OPT).
-			for i := 0; i < arCount && offset+10 <= len(rawResp); i++ {
-				if rawResp[offset]&0xC0 == 0xC0 {
-					offset += 2
-				} else {
-					offset = skipDNSName(rawResp, offset)
-				}
-				if offset+10 > len(rawResp) {
-					break
-				}
-				qtype := binary.BigEndian.Uint16(rawResp[offset : offset+2])
-				if qtype == 41 { // TYPE_OPT
-					// RDLENGTH is at offset+8:10.
-					rdlen := int(binary.BigEndian.Uint16(rawResp[offset+8 : offset+10]))
-					if rdlen >= 11 {
-						// Extended RCODE and flags at offset+2:4, UDP payload size at offset+4:6.
-						res.ResponseSize = int(binary.BigEndian.Uint16(rawResp[offset+4 : offset+6]))
-					}
-				}
-				offset += 10
-				if offset+10 <= len(rawResp) {
-					rdlen := int(binary.BigEndian.Uint16(rawResp[offset+8 : offset+10]))
-					offset += rdlen
-				}
-			}
+			res.ResponseSize = int(size)
 		}
 	}
 	return res
@@ -252,10 +214,10 @@ func (s *DNSScanner) runEDNS0Check(ctx context.Context) EDNSTestResult {
 
 // HijackTestResult holds the outcome of the DNS hijack check.
 type HijackTestResult struct {
-	Hijacked   bool
-	HijackedDomains []string
+	Hijacked          bool
+	HijackedDomains   []string
 	SuspiciousDomains []string
-	Failures    []string
+	Failures          []string
 }
 
 // runHijackCheck queries each target domain and checks whether the resolved IPs
@@ -272,18 +234,14 @@ func (s *DNSScanner) runHijackCheck(ctx context.Context) HijackTestResult {
 			res.SuspiciousDomains = append(res.SuspiciousDomains, domain)
 			continue
 		}
-		// Check each IP against the known-good list.
 		hijacked := false
 		for _, ip := range ips {
+			if s.isKnownGoodIP(ip) {
+				continue
+			}
 			if isKnownHijackIP(ip) {
 				hijacked = true
 				break
-			}
-			for _, good := range s.KnownGoodIPs {
-				if ip == good {
-					hijacked = false
-					break
-				}
 			}
 		}
 		if hijacked {
@@ -294,26 +252,38 @@ func (s *DNSScanner) runHijackCheck(ctx context.Context) HijackTestResult {
 	return res
 }
 
-// isKnownHijackIP heuristically flags IPs commonly returned by captive portals
-// or DNS-level ad filtering.
-func isKnownHijackIP(ip string) bool {
-	// Sinkhole ranges used by common tools.
-	sinkholes := []string{
-		"0.0.0.0",
-		"127.0.0.1",
-		"198.51.100.0/24", // TEST-NET-2
-		"203.0.113.0/24", // TEST-NET-3
-	}
+func (s *DNSScanner) isKnownGoodIP(ip string) bool {
 	parsed := net.ParseIP(ip)
 	if parsed == nil {
 		return false
 	}
-	for _, cidr := range sinkholes {
-		_, ipnet, err := net.ParseCIDR(cidr)
-		if err != nil {
-			continue
+	for _, good := range s.KnownGoodIPs {
+		goodIP := net.ParseIP(good)
+		if goodIP != nil && parsed.Equal(goodIP) {
+			return true
 		}
-		if ipnet.Contains(parsed) {
+	}
+	return false
+}
+
+// isKnownHijackIP heuristically flags IPs commonly returned by captive portals
+// or DNS-level ad filtering.
+func isKnownHijackIP(ip string) bool {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	for _, exact := range []string{"0.0.0.0", "127.0.0.1"} {
+		if parsed.Equal(net.ParseIP(exact)) {
+			return true
+		}
+	}
+	for _, cidr := range []string{
+		"198.51.100.0/24", // TEST-NET-2
+		"203.0.113.0/24", // TEST-NET-3
+	} {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err == nil && ipnet.Contains(parsed) {
 			return true
 		}
 	}
@@ -327,70 +297,120 @@ func isKnownHijackIP(ip string) bool {
 // queryDNS performs a single DNS A-query and returns the wire-format response.
 func (s *DNSScanner) queryDNS(ctx context.Context, name string, qtype uint16, dnssecOK bool) ([]byte, time.Duration, error) {
 	q := s.buildQuery(name, qtype, dnssecOK)
+	if q == nil {
+		return nil, 0, fmt.Errorf("invalid DNS query name %q", name)
+	}
 	return s.rawQuery(ctx, q)
 }
 
-func (s *DNSScanner) buildQuery(name string, qtype uint16, dnssecOK bool) []byte {
-	var buf []byte
-	buf = append(buf, 0x00, 0x01) // TXID
-	buf = append(buf, 0x01, 0x00) // RD=1
-	buf = append(buf, 0x00, 0x01) // QDCOUNT=1
-	buf = append(buf, 0x00, 0x00) // ANCOUNT, NSCOUNT
-	if dnssecOK {
-		buf = append(buf, 0x00, 0x01) // ARCOUNT=1 (OPT)
-	} else {
-		buf = append(buf, 0x00, 0x00)
+func encodeDNSName(name string) ([]byte, bool) {
+	name = strings.TrimSuffix(name, ".")
+	if name == "" {
+		return []byte{0}, true
 	}
-	// Encode name.
+	var out []byte
 	for _, label := range strings.Split(name, ".") {
-		if label == "" {
-			continue
+		if len(label) == 0 || len(label) > 63 {
+			return nil, false
 		}
-		buf = append(buf, byte(len(label)))
-		buf = append(buf, label...)
+		out = append(out, byte(len(label)))
+		out = append(out, label...)
 	}
-	buf = append(buf, 0x00) // root
-	buf = append(buf, 0x00) // high byte of QTYPE
-	buf = append(buf, byte(qtype))
-	buf = append(buf, 0x00, 0x01) // QCLASS=IN
+	out = append(out, 0)
+	if len(out) > 255 {
+		return nil, false
+	}
+	return out, true
+}
+
+func appendOPT(buf []byte, bufsize uint16, dnssecOK bool) []byte {
+	buf = append(buf, 0x00)       // NAME=root
+	buf = append(buf, 0x00, 0x29) // TYPE=OPT
+	buf = append(buf, byte(bufsize>>8), byte(bufsize))
+	// TTL: extended RCODE, EDNS version, flags. DO is bit 15 of flags.
+	flags := uint16(0)
 	if dnssecOK {
-		// EDNS0 OPT record.
-		buf = append(buf, 0x00, 0x00) // NAME=root
-		buf = append(buf, 0x00, 0x29) // TYPE=41 (OPT)
-		buf = append(buf, 0x10, 0x00) // UDP payload size = 4096
-		buf = append(buf, 0x00, 0x00) // extended RCODE + flags
-		buf = append(buf, 0x00, 0x00) // RDLENGTH=0
+		flags = 0x8000
+	}
+	buf = append(buf, 0x00, 0x00, byte(flags>>8), byte(flags))
+	buf = append(buf, 0x00, 0x00) // RDLENGTH=0
+	return buf
+}
+
+func (s *DNSScanner) buildQuery(name string, qtype uint16, dnssecOK bool) []byte {
+	encodedName, ok := encodeDNSName(name)
+	if !ok {
+		return nil
+	}
+	buf := make([]byte, 12)
+	binary.BigEndian.PutUint16(buf[0:2], 1)      // TXID
+	binary.BigEndian.PutUint16(buf[2:4], 0x0100) // RD=1
+	binary.BigEndian.PutUint16(buf[4:6], 1)      // QDCOUNT=1
+	if dnssecOK {
+		binary.BigEndian.PutUint16(buf[10:12], 1) // ARCOUNT=1
+	}
+	buf = append(buf, encodedName...)
+	buf = append(buf, byte(qtype>>8), byte(qtype), 0x00, 0x01) // QTYPE, QCLASS=IN
+	if dnssecOK {
+		buf = appendOPT(buf, 4096, true)
 	}
 	return buf
 }
 
 func (s *DNSScanner) buildQueryWithEDNS0(name string, bufsize uint16) []byte {
 	q := s.buildQuery(name, 1, false)
-	// Replace ARCOUNT with 1 and append OPT.
-	q[11] = 0x01
-	// Append OPT record (overwrites trailing zero if present).
-	q = append(q, 0x00, 0x00) // NAME=root
-	q = append(q, 0x00, 0x29) // TYPE=41
-	q = append(q, byte(bufsize>>8), byte(bufsize&0xFF)) // bufsize
-	q = append(q, 0x00, 0x00) // extended RCODE + flags
-	q = append(q, 0x00, 0x00) // RDLENGTH=0
-	return q
+	if q == nil {
+		return nil
+	}
+	binary.BigEndian.PutUint16(q[10:12], 1)
+	return appendOPT(q, bufsize, false)
+}
+
+func resolverAddress(resolver string) (string, error) {
+	resolver = strings.TrimSpace(resolver)
+	if resolver == "" {
+		return "", fmt.Errorf("resolver address is required")
+	}
+	if host, port, err := net.SplitHostPort(resolver); err == nil {
+		if host == "" || port == "" {
+			return "", fmt.Errorf("invalid resolver address %q", resolver)
+		}
+		return resolver, nil
+	}
+	if net.ParseIP(resolver) != nil || (!strings.Contains(resolver, ":") && resolver != "") {
+		return net.JoinHostPort(resolver, "53"), nil
+	}
+	return "", fmt.Errorf("invalid resolver address %q", resolver)
 }
 
 func (s *DNSScanner) rawQuery(ctx context.Context, wire []byte) ([]byte, time.Duration, error) {
-	addr := s.ResolverIP
-	if !strings.Contains(addr, ":") {
-		addr += ":53"
+	if len(wire) < 12 {
+		return nil, 0, fmt.Errorf("DNS query is shorter than the 12-byte header")
 	}
-	conn, err := net.DialTimeout("udp", addr, s.Timeout)
+	addr, err := resolverAddress(s.ResolverIP)
+	if err != nil {
+		return nil, 0, err
+	}
+	dialer := net.Dialer{}
+	if s.Timeout > 0 {
+		dialer.Timeout = s.Timeout
+	}
+	conn, err := dialer.DialContext(ctx, "udp", addr)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer conn.Close()
-	conn.SetReadDeadline(time.Now().Add(s.Timeout))
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			return nil, 0, err
+		}
+	} else if s.Timeout > 0 {
+		if err := conn.SetDeadline(time.Now().Add(s.Timeout)); err != nil {
+			return nil, 0, err
+		}
+	}
 	start := time.Now()
-	_, err = conn.Write(wire)
-	if err != nil {
+	if _, err := conn.Write(wire); err != nil {
 		return nil, 0, err
 	}
 	buf := make([]byte, 4096)
@@ -398,7 +418,17 @@ func (s *DNSScanner) rawQuery(ctx context.Context, wire []byte) ([]byte, time.Du
 	if err != nil {
 		return nil, 0, err
 	}
+	if n < 12 {
+		return nil, time.Since(start), fmt.Errorf("DNS response is shorter than the 12-byte header")
+	}
+	if !equalDNSID(wire, buf[:n]) {
+		return nil, time.Since(start), fmt.Errorf("DNS response transaction ID does not match query")
+	}
 	return buf[:n], time.Since(start), nil
+}
+
+func equalDNSID(query, response []byte) bool {
+	return len(query) >= 2 && len(response) >= 2 && query[0] == response[0] && query[1] == response[1]
 }
 
 func (s *DNSScanner) resolveA(ctx context.Context, name string) ([]string, error) {
@@ -409,7 +439,9 @@ func (s *DNSScanner) resolveA(ctx context.Context, name string) ([]string, error
 	return parseARecords(resp), nil
 }
 
-// skipDNSName advances the offset past a DNS name.
+// skipDNSName advances the offset past an encoded or compressed DNS name.
+// It does not dereference compression pointers because callers only need the
+// number of bytes consumed at the current position.
 func skipDNSName(msg []byte, offset int) int {
 	for offset < len(msg) {
 		length := msg[offset]
@@ -417,18 +449,77 @@ func skipDNSName(msg []byte, offset int) int {
 			return offset + 1
 		}
 		if length&0xC0 == 0xC0 {
+			if offset+1 >= len(msg) {
+				return len(msg)
+			}
 			return offset + 2
+		}
+		if length&0xC0 != 0 || length > 63 || offset+1+int(length) > len(msg) {
+			return len(msg)
 		}
 		offset += int(length) + 1
 	}
 	return offset
 }
 
+func skipDNSRecord(msg []byte, offset int) (int, bool) {
+	offset = skipDNSName(msg, offset)
+	if offset+10 > len(msg) {
+		return len(msg), false
+	}
+	rdlen := int(binary.BigEndian.Uint16(msg[offset+8 : offset+10]))
+	next := offset + 10 + rdlen
+	if next > len(msg) {
+		return len(msg), false
+	}
+	return next, true
+}
+
+func parseEDNS0PayloadSize(msg []byte) (uint16, bool) {
+	if len(msg) < 12 {
+		return 0, false
+	}
+	qdCount := int(binary.BigEndian.Uint16(msg[4:6]))
+	anCount := int(binary.BigEndian.Uint16(msg[6:8]))
+	nsCount := int(binary.BigEndian.Uint16(msg[8:10]))
+	arCount := int(binary.BigEndian.Uint16(msg[10:12]))
+	offset := 12
+	for i := 0; i < qdCount; i++ {
+		offset = skipDNSName(msg, offset)
+		if offset+4 > len(msg) {
+			return 0, false
+		}
+		offset += 4
+	}
+	for i := 0; i < anCount+nsCount; i++ {
+		var ok bool
+		offset, ok = skipDNSRecord(msg, offset)
+		if !ok {
+			return 0, false
+		}
+	}
+	for i := 0; i < arCount; i++ {
+		nameEnd := skipDNSName(msg, offset)
+		if nameEnd+10 > len(msg) {
+			return 0, false
+		}
+		rtype := binary.BigEndian.Uint16(msg[nameEnd : nameEnd+2])
+		payloadSize := binary.BigEndian.Uint16(msg[nameEnd+2 : nameEnd+4])
+		rdlen := int(binary.BigEndian.Uint16(msg[nameEnd+8 : nameEnd+10]))
+		next := nameEnd + 10 + rdlen
+		if next > len(msg) {
+			return 0, false
+		}
+		if rtype == 41 {
+			return payloadSize, true
+		}
+		offset = next
+	}
+	return 0, false
+}
+
 // parseARecords walks a DNS wire-format response and returns every A record
-// (QTYPE=1) answer as a dotted-quad string. The function is duplicated here
-// instead of imported from internal/networking/dns to avoid an import cycle
-// (dns_battery_test lives in the diagnostics package and only needs a few
-// helpers from the response decoder).
+// (QTYPE=1) answer as a dotted-quad string.
 func parseARecords(resp []byte) []string {
 	if len(resp) < 12 {
 		return nil
@@ -436,13 +527,12 @@ func parseARecords(resp []byte) []string {
 	qdCount := int(binary.BigEndian.Uint16(resp[4:6]))
 	anCount := int(binary.BigEndian.Uint16(resp[6:8]))
 	offset := 12
-	// Skip the question section.
 	for i := 0; i < qdCount; i++ {
 		offset = skipDNSName(resp, offset)
 		if offset+4 > len(resp) {
 			return nil
 		}
-		offset += 4 // QTYPE + QCLASS
+		offset += 4
 	}
 	var out []string
 	for i := 0; i < anCount; i++ {
@@ -450,17 +540,14 @@ func parseARecords(resp []byte) []string {
 		if offset+10 > len(resp) {
 			return out
 		}
-		qtype := binary.BigEndian.Uint16(resp[offset : offset+2])
-		// skip CLASS(2) + TTL(4)
-		offset += 8
-		rdlen := int(binary.BigEndian.Uint16(resp[offset : offset+2]))
-		offset += 2
+		rtype := binary.BigEndian.Uint16(resp[offset : offset+2])
+		rdlen := int(binary.BigEndian.Uint16(resp[offset+8 : offset+10]))
+		offset += 10
 		if offset+rdlen > len(resp) {
 			return out
 		}
-		if qtype == 1 && rdlen == 4 {
-			ip := net.IP(resp[offset : offset+4]).String()
-			out = append(out, ip)
+		if rtype == 1 && rdlen == net.IPv4len {
+			out = append(out, net.IP(resp[offset:offset+rdlen]).String())
 		}
 		offset += rdlen
 	}

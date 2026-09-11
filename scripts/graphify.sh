@@ -49,7 +49,19 @@ cleanup() {
 trap cleanup EXIT
 
 graphify extract "$ROOT" --code-only --out "$TMP_OUT" --force
-python3 "$ROOT/scripts/checks/check_graphify_output.py" "$TMP_OUT/graph.json"
+
+# Graphify 0.9.26 may honor --out as a parent and create graphify-out/
+# beneath it. Normalize either supported layout before validation/publication.
+GENERATED_OUT="$TMP_OUT"
+if [[ ! -f "$GENERATED_OUT/graph.json" ]]; then
+  if [[ -f "$TMP_OUT/graphify-out/graph.json" ]]; then
+    GENERATED_OUT="$TMP_OUT/graphify-out"
+  else
+    printf 'Graphify did not produce graph.json under %s or its graphify-out child\n' "$TMP_OUT" >&2
+    exit 1
+  fi
+fi
+python3 "$ROOT/scripts/checks/check_graphify_output.py" "$GENERATED_OUT/graph.json"
 
 if [[ -e "$OUT" ]]; then
   BACKUP_OUT="$(mktemp -d "$OUT_PARENT/.graphify-prev.XXXXXX")"
@@ -57,12 +69,15 @@ if [[ -e "$OUT" ]]; then
   mv -- "$OUT" "$BACKUP_OUT"
 fi
 
-if ! mv -- "$TMP_OUT" "$OUT"; then
+if ! mv -- "$GENERATED_OUT" "$OUT"; then
   if [[ -n "$BACKUP_OUT" && -e "$BACKUP_OUT" && ! -e "$OUT" ]]; then
     mv -- "$BACKUP_OUT" "$OUT"
     BACKUP_OUT=""
   fi
   exit 1
+fi
+if [[ "$GENERATED_OUT" != "$TMP_OUT" && -e "$TMP_OUT" ]]; then
+  rm -rf -- "$TMP_OUT"
 fi
 TMP_OUT=""
 

@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java/com/luminet/android/dns
+
+## Purpose
+Provides host-side unit coverage for Android DNS integration and configuration behavior.
+
+## Contents
+Contains JVM tests and fixtures for DNS models, validation, selection, or lifecycle helpers in the Android application.
+
+## Interfaces and dependencies
+Exercises production DNS contracts using deterministic local inputs and mocks rather than requiring live Android networking.
+
+## Invariants
+Tests must not depend on external DNS availability, must cover invalid/edge inputs where relevant, and must leave shared test state clean between cases.

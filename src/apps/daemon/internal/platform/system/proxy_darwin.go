@@ -26,6 +26,88 @@ func networkSetupOutput(ctx context.Context, args ...string) (string, error) {
 	return string(out), nil
 }
 
+func parseDefaultRouteInterface(out string) string {
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "interface:") {
+			continue
+		}
+		return strings.TrimSpace(strings.TrimPrefix(line, "interface:"))
+	}
+	return ""
+}
+
+func parseNetworkServiceHeader(line string) (service string, disabled bool, ok bool) {
+	line = strings.TrimSpace(line)
+	if len(line) < 4 || line[0] != '(' {
+		return "", false, false
+	}
+	closeIndex := strings.IndexByte(line, ')')
+	if closeIndex <= 1 {
+		return "", false, false
+	}
+	for _, r := range line[1:closeIndex] {
+		if r < '0' || r > '9' {
+			return "", false, false
+		}
+	}
+	service = strings.TrimSpace(line[closeIndex+1:])
+	disabled = strings.HasPrefix(service, "*")
+	service = strings.TrimSpace(strings.TrimPrefix(service, "*"))
+	if service == "" {
+		return "", disabled, false
+	}
+	return service, disabled, true
+}
+
+func parseNetworkServiceForDevice(out, device string) string {
+	device = strings.TrimSpace(device)
+	if device == "" {
+		return ""
+	}
+
+	service := ""
+	disabled := false
+	for _, raw := range strings.Split(out, "\n") {
+		line := strings.TrimSpace(raw)
+		if candidate, isDisabled, ok := parseNetworkServiceHeader(line); ok {
+			service = candidate
+			disabled = isDisabled
+			continue
+		}
+		if service == "" || disabled || !strings.Contains(line, "Device:") {
+			continue
+		}
+		deviceField := strings.SplitN(line, "Device:", 2)[1]
+		candidate := strings.TrimSpace(strings.TrimSuffix(deviceField, ")"))
+		if candidate == device {
+			return service
+		}
+	}
+	return ""
+}
+
+func getDefaultAdapter(ctx context.Context) (string, error) {
+	routeOutput, err := exec.CommandContext(ctx, "route", "-n", "get", "default").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("resolve default route: %w: %s", err, strings.TrimSpace(string(routeOutput)))
+	}
+	device := parseDefaultRouteInterface(string(routeOutput))
+	if device == "" {
+		return "", fmt.Errorf("resolve default route: route output did not contain an interface")
+	}
+
+	serviceOutput, err := networkSetupOutput(ctx, "-listnetworkserviceorder")
+	if err != nil {
+		return "", err
+	}
+	service := parseNetworkServiceForDevice(serviceOutput, device)
+	if service == "" {
+		return "", fmt.Errorf("resolve default network service: no enabled service owns interface %q", device)
+	}
+	return service, nil
+}
+
 func parseNetworkSetupProxy(out string) (enabled bool, server, port string) {
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)

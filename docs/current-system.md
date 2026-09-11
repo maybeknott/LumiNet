@@ -31,6 +31,9 @@ has an owner, a compatibility test, and truthful capability reporting.
 - `labs/daemon/` is a governed, non-authoritative capability corpus. Lab code is preserved and catalogued but is not imported by the live daemon; promotion requires extraction into a canonical owner with explicit verification.
 - `src/packages/lumicore/` owns selected native and performance-sensitive execution behind the
   versioned ABI described by `governance/conductor/abi/`.
+- `src/packages/lumicore-sdk/` ships the embeddable C header and the pure-Python `luminet`
+  bindings for the lumicore ABI. The Python SDK degrades to documented pure-Python fallbacks
+  when the native library is absent; its unit tests run under `make test-lumicore-sdk`.
 - `src/apps/daemon/internal/adapters/mobilebind/` is the canonical generated mobile binding adapter
   exported by the release workflow. It translates gobind-compatible JSON and lifecycle calls
   into the same runtime and safety-policy owners used by other transports; it does not own

@@ -1,0 +1,13 @@
+# src/apps/android/app/src/androidTest/java/com/luminet/android
+
+## Purpose
+Holds LumiNet Android instrumentation tests that validate behavior requiring an Android runtime, emulator, or platform services.
+
+## Contents
+Contains device-facing test classes and any nested feature-specific instrumentation-test packages.
+
+## Interfaces and dependencies
+Uses Android test APIs and the installed app-under-test; assertions should observe public or intended application/platform behavior.
+
+## Invariants
+Tests must remain deterministic across supported emulator environments, clean up platform state they mutate, and never ship in the production APK.

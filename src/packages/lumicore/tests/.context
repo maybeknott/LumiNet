@@ -4,7 +4,7 @@
 Rust integration/ABI behavior tests outside individual modules.
 
 ## Contents
-- Direct files (5): `blackrock_test.rs`, `dns_test.rs`, `icmp_test.rs`, `tcp_test.rs`, `wg_test.rs`
+- Direct files (61): `adaptive_strategy_racer_test.rs`, `aether_core_test.rs`, `amneziawg_test.rs`, `backend_prober_test.rs`, `batch_frame_codec_test.rs`, `batch_speed_matrix_test.rs`, `blackrock_test.rs`, `blob_queue_aead_test.rs`, `combined_bypass_evaluator_test.rs`, `connection_lineage_test.rs`, `core_context_builder_test.rs`, `covert_dead_drop_test.rs` …
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

@@ -4,7 +4,7 @@
 Native system/runtime helpers.
 
 ## Contents
-- Direct files (4): `mod.rs`, `netfilter_randmap.rs`, `proactor_io.rs`, `userspace_tun.rs`
+- Direct files (9): `ebpf_redirector.rs`, `mod.rs`, `netfilter_randmap.rs`, `netfilter_randmap_v6.rs`, `proactor_io.rs`, `randmap_egress.rs`, `tun_bridge.rs`, `tunnel_process_supervisor.rs`, `userspace_tun.rs`
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

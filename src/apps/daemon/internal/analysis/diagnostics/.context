@@ -8,12 +8,12 @@ Network diagnosis and analysis owner: censorship diagnosis, clean-IP probing, IP
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (106): `anti_bot.go`, `anti_bot_test.go`, `artifact_admission_plan.go`, `asn_spoof_test.go`, `browser_proxy_handoff_plan.go`, `cdn_candidates.go`, `cdn_discovery.go`, `cdn_discovery_test.go`, `cdn_scan.go`, `cdn_scan_test.go`, `censorship_diagnosis.go`, `censorship_diagnosis_test.go` …
+- Direct files (131): `anti_bot.go`, `anti_bot_test.go`, `artifact_admission_plan.go`, `asn_spoof_test.go`, `browser_proxy_handoff_plan.go`, `cdn_candidates.go`, `cdn_discovery.go`, `cdn_discovery_test.go`, `cdn_scan.go`, `cdn_scan_test.go`, `censorship_diagnosis.go`, `censorship_diagnosis_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `diagnostics`.
-- Notable exported surface: `AnalyzeIPSecurity`, `AntiBotDetector`, `ArtifactAdmissionPlan`, `ArtifactAdmissionRequest`, `BotBlockStatus`, `BrowserNativeHostManifestPlan`, `BrowserProxyHandoffPlan`, `BrowserProxyHandoffPlanRequest`, `BuildArtifactAdmissionPlan`, `BuildBrowserProxyHandoffPlan` …
-- Daemon-local dependencies: `internal/foundation/netpolicy`, `internal/foundation/resourcebudget`, `internal/networking/proxyconfig`, `internal/networking/tlsdecoy`, `internal/protocols/arq`, `internal/protocols/tlsfragment`.
+- Notable exported surface: `APITraceEndpoint`, `APITraceObservation`, `APITraceSchemaPlan`, `APITraceSchemaRequest`, `AnalyzeIPSecurity`, `AntiBotDetector`, `ArtifactAdmissionPlan`, `ArtifactAdmissionRequest`, `AttemptStage`, `BlockingChange` …
+- Daemon-local dependencies: `internal/foundation/netpolicy`, `internal/foundation/resourcebudget`, `internal/native/bridge`, `internal/networking/proxyconfig`, `internal/networking/tlsdecoy`, `internal/protocols/arq`, `internal/protocols/tlsfragment`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/workflows/jobs`.
 
 ## Invariants

@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/networking/covert
+
+## Purpose
+Implements covert or obfuscated networking helpers retained as part of the daemon transport surface.
+
+## Contents
+Contains Go transport/protocol code and supporting models used to establish or carry traffic through covert networking modes.
+
+## Interfaces and dependencies
+Consumed by higher networking/routing orchestration and depends on lower-level sockets, protocols, configuration, and cancellation facilities.
+
+## Invariants
+Network operations are bounded and cancellable, malformed peer/input data is rejected safely, connection resources are closed on failure, and transport-specific details do not leak into unrelated orchestration layers.

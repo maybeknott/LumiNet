@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/platform/windows
+
+## Purpose
+Contains Windows-specific daemon platform integration that cannot be expressed through portable foundation or platform abstractions.
+
+## Contents
+Contains Go code guarded or intended for Windows facilities such as system configuration, process/service, networking, or OS handles.
+
+## Interfaces and dependencies
+Consumed through daemon platform boundaries and depends on Windows APIs and platform-specific libraries.
+
+## Invariants
+Windows-only code remains build-scoped to Windows, native handles/resources have explicit cleanup, privilege-sensitive mutations report failures, and rollback/cleanup preserves prior system state when operations cannot complete.

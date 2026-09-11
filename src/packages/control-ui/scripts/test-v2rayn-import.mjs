@@ -15,6 +15,7 @@ try {
     [join(rootPath, 'node_modules', 'typescript', 'bin', 'tsc'),
       'src/utils/v2raynImport.ts',
       'src/utils/stampFeed.ts',
+      'src/utils/profileKey.ts',
       '--outDir', outDir,
       '--target', 'ES2023',
       '--module', 'ES2022',
@@ -40,7 +41,9 @@ try {
   assert.equal(items.length, 2);
   assert.equal(items[0].protocol, 'vmess');
   assert.equal(items[0].name, 'vmess-a');
+  assert.ok(typeof items[0].profileKey === 'string' && items[0].profileKey.length === 64);
   assert.equal(items[1].protocol, 'vless');
+  assert.ok(typeof items[1].profileKey === 'string' && items[1].profileKey.length === 64);
   assert.ok(skipped.length >= 3, `expected >=3 skips, got ${skipped.length}`);
 
   // Full-config export with profileItems wrapper.

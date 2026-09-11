@@ -1,0 +1,54 @@
+name: Control UI Behavior
+
+on:
+  push:
+    branches: [main, master, dev, audit/three-report-remediation]
+  pull_request:
+    branches: [main, master, dev]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.16.0'
+  PLAYWRIGHT_VERSION: '1.55.0'
+
+jobs:
+  browser-behavior:
+    name: Rendered interaction and accessibility smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Enforce design-system authority
+        run: python3 scripts/checks/check_design_system_truth.py
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/packages/control-ui/package-lock.json
+
+      - name: Install application dependencies
+        working-directory: src/packages/control-ui
+        run: npm ci
+
+      - name: Install pinned Playwright runner without mutating lockfile
+        working-directory: src/packages/control-ui
+        run: npm install --no-save --package-lock=false "@playwright/test@${PLAYWRIGHT_VERSION}"
+
+      - name: Install Chromium runtime
+        working-directory: src/packages/control-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Build production bundle
+        working-directory: src/packages/control-ui
+        run: npm run build
+
+      - name: Run rendered remediation scenarios
+        working-directory: src/packages/control-ui
+        run: npx playwright test

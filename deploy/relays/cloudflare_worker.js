@@ -23,7 +23,9 @@ import {
 } from "./fixed_http_contract.mjs";
 
 const CONFIG = {
-  AUTH_KEY: "covert-gsa-key-change-me",
+  // RELAY_URL and DOH_UPSTREAM are placeholders that operators must replace.
+  // There is deliberately no default AUTH_KEY: the tunnel path fails closed
+  // until env.AUTH_KEY is configured.
   RELAY_URL: "https://your-evasion-relay-server.com/tunnel",
   DOH_UPSTREAM: "https://cloudflare-dns.com/dns-query"
 };
@@ -33,7 +35,7 @@ export default {
     const requestIdValue = requestId(request);
     const loopResponse = rejectHop(request, Number(env.RELAY_MAX_HOPS || 2));
     if (loopResponse) return loopResponse;
-    const authKey = env.AUTH_KEY || CONFIG.AUTH_KEY;
+    const authKey = env.AUTH_KEY || "";
     const relayUrl = env.RELAY_URL || CONFIG.RELAY_URL;
     const dohUpstream = env.DOH_UPSTREAM || CONFIG.DOH_UPSTREAM;
 

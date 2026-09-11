@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java/com
+
+## Purpose
+Maintains the top-level namespace segment for local Android JVM tests.
+
+## Contents
+Contains the `luminet` namespace and nested application unit-test packages.
+
+## Interfaces and dependencies
+Participates in test source/package resolution by Gradle and the JVM compiler rather than exposing a runtime API.
+
+## Invariants
+The namespace hierarchy must match package declarations, remain test-only, and never become an alternate production implementation tree.

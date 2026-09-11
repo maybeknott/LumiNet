@@ -17,11 +17,11 @@ import (
 
 // PortRange represents a reserved range of TCP/UDP ports.
 type PortRange struct {
-	Start      uint16
-	End        uint16
-	Kind       string // "kind" or "normal"
+	Start         uint16
+	End           uint16
+	Kind          string // "kind" or "normal"
 	ReservationID string
-	AcquiredAt time.Time
+	AcquiredAt    time.Time
 }
 
 // KindnessMode controls how port allocations distribute fairness.
@@ -45,7 +45,7 @@ type KindnessBudget struct {
 	mu       sync.RWMutex
 	freePort uint32 // atomic cursor for hint-based allocation
 
-	// portMap maps port number → reservation ID (empty = free).
+	// portMap maps port number -> reservation ID (empty = free).
 	portMap map[uint16]string
 
 	// ranges are the configured port pools.
@@ -99,7 +99,7 @@ var (
 	ErrNoFreePort    = errors.New("kindness: no free port in any range")
 	ErrNotHolder     = errors.New("kindness: not the holder of this port")
 	ErrUnknownRange  = errors.New("kindness: port not in any configured range")
-	ErrAlreadyHeld   = errors.New("kindness: port already held")
+	ErrAlreadyHeld   = errors.New("kindness: reservation id already active")
 	ErrNoReservation = errors.New("kindness: reservation not found")
 )
 
@@ -113,32 +113,37 @@ func NewKindnessBudget(ranges []PortRange, mode KindnessMode) (*KindnessBudget, 
 		if r.Start > r.End {
 			return nil, fmt.Errorf("kindness: invalid range [%d, %d]", r.Start, r.End)
 		}
-		// Mark all ports as free.
-		for p := r.Start; p <= r.End; p++ {
-			portMap[p] = ""
+		// Iterate as ints so an End of 65535 cannot wrap uint16 back to zero.
+		for p := int(r.Start); p <= int(r.End); p++ {
+			portMap[uint16(p)] = ""
 		}
 	}
 	return &KindnessBudget{
-		portMap:     portMap,
-		ranges:      append([]PortRange(nil), ranges...),
+		portMap:      portMap,
+		ranges:       append([]PortRange(nil), ranges...),
 		reservations: make(map[string]*PortReservation),
-		mode:        mode,
-		backoff:     make(map[string]*backoffState),
+		mode:         mode,
+		backoff:      make(map[string]*backoffState),
 	}, nil
 }
 
 // Reserve acquires one free port from the ranges, respecting kindness mode.
 // The returned PortReservation must be released with Release when done.
-// ctx is used for the backoff sleep; pass context.Background for non-blocking.
+// ctx bounds any contention-backoff sleep.
 func (b *KindnessBudget) Reserve(ctx context.Context, id string, kind string, cfg BackoffConfig) (*PortReservation, error) {
-	if cfg.InitialDelay == 0 {
-		cfg = DefaultBackoffConfig
-	}
+	cfg = normalizeBackoffConfig(cfg)
 	if id == "" {
 		return nil, errors.New("kindness: reservation id required")
 	}
 
-	// Apply backoff for repeated failures on the same ID.
+	b.mu.RLock()
+	existing := b.reservations[id]
+	b.mu.RUnlock()
+	if existing != nil {
+		return nil, fmt.Errorf("%w: %q already owns port %d", ErrAlreadyHeld, id, existing.Port)
+	}
+
+	// Honor an outstanding penalty from a prior failed allocation.
 	if err := b.maybeBackoff(ctx, id, cfg); err != nil {
 		return nil, err
 	}
@@ -146,6 +151,9 @@ func (b *KindnessBudget) Reserve(ctx context.Context, id string, kind string, cf
 	// Hint-based allocation: start scanning from a cursor to distribute
 	// across the range rather than always allocating the same ports first.
 	hint := uint16(atomic.LoadUint32(&b.freePort))
+	if hint != 0 {
+		b.hintsAttempt.Add(1)
+	}
 	acquired := b.tryAcquire(hint, id, kind)
 	if acquired == 0 {
 		// Try full scan as fallback.
@@ -153,9 +161,14 @@ func (b *KindnessBudget) Reserve(ctx context.Context, id string, kind string, cf
 	}
 
 	if acquired == 0 {
-		// No free port.
+		// Apply the contention penalty before returning. This makes the first
+		// failed allocation bounded as well as subsequent retries, preventing a
+		// caller from hammering an exhausted pool with fresh request loops.
 		b.contention.Add(1)
 		b.setBackoff(id, cfg)
+		if err := b.maybeBackoff(ctx, id, cfg); err != nil {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%w (all ports in use)", ErrNoFreePort)
 	}
 
@@ -168,6 +181,13 @@ func (b *KindnessBudget) Reserve(ctx context.Context, id string, kind string, cf
 		Acquired: time.Now(),
 	}
 	b.mu.Lock()
+	// A concurrent Reserve with the same ID may have won after our initial
+	// check. Roll back this port instead of orphaning it in the slot map.
+	if existing = b.reservations[id]; existing != nil {
+		b.portMap[acquired] = ""
+		b.mu.Unlock()
+		return nil, fmt.Errorf("%w: %q already owns port %d", ErrAlreadyHeld, id, existing.Port)
+	}
 	b.reservations[id] = res
 	b.mu.Unlock()
 
@@ -181,37 +201,44 @@ func (b *KindnessBudget) tryAcquire(hint uint16, id, kind string) uint16 {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Collect candidate ports based on kindness mode.
+	// Collect candidate ports based on kindness mode. Iterate each configured
+	// range directly so gaps between ranges can never be allocated.
 	var candidates []uint16
 
 	switch b.mode {
 	case KindClient:
-		// Resource-limited clients prefer low ports.
+		// Resource-limited clients prefer the configured kind ranges.
 		for _, r := range b.ranges {
-			if r.Kind == "kind" || r.Kind == "" {
-				candidates = append(candidates, r.Start)
-				for p := r.Start; p <= r.End; p++ {
-					if b.portMap[p] == "" {
-						candidates = append(candidates, p)
-					}
+			if r.Kind != "kind" && r.Kind != "" {
+				continue
+			}
+			for p := int(r.Start); p <= int(r.End); p++ {
+				port := uint16(p)
+				if held, ok := b.portMap[port]; ok && held == "" {
+					candidates = append(candidates, port)
 				}
 			}
 		}
 	case Generous:
-		// Generous clients prefer high ports.
+		// Generous clients prefer high ports in normal ranges.
 		for _, r := range b.ranges {
-			if r.Kind == "normal" || r.Kind == "" {
-				for p := r.End; p >= r.Start; p-- {
-					if b.portMap[p] == "" {
-						candidates = append(candidates, p)
-					}
+			if r.Kind != "normal" && r.Kind != "" {
+				continue
+			}
+			for p := int(r.End); p >= int(r.Start); p-- {
+				port := uint16(p)
+				if held, ok := b.portMap[port]; ok && held == "" {
+					candidates = append(candidates, port)
 				}
 			}
 		}
 	default: // Balanced
-		for p := b.ranges[0].Start; p <= b.ranges[len(b.ranges)-1].End; p++ {
-			if b.portMap[p] == "" {
-				candidates = append(candidates, p)
+		for _, r := range b.ranges {
+			for p := int(r.Start); p <= int(r.End); p++ {
+				port := uint16(p)
+				if held, ok := b.portMap[port]; ok && held == "" {
+					candidates = append(candidates, port)
+				}
 			}
 		}
 	}
@@ -270,9 +297,14 @@ func (b *KindnessBudget) ReleasePort(port uint16, id string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if held := b.portMap[port]; held == "" {
-		return fmt.Errorf("%w: port %d is already free", ErrUnknownRange, port)
-	} else if held != id {
+	held, exists := b.portMap[port]
+	if !exists {
+		return fmt.Errorf("%w: port %d is outside configured ranges", ErrUnknownRange, port)
+	}
+	if held == "" {
+		return fmt.Errorf("%w: port %d is already free", ErrNoReservation, port)
+	}
+	if held != id {
 		return fmt.Errorf("%w: port %d held by %q, not %q", ErrNotHolder, port, held, id)
 	}
 
@@ -334,6 +366,27 @@ type backoffState struct {
 	deadline time.Time
 }
 
+func normalizeBackoffConfig(cfg BackoffConfig) BackoffConfig {
+	if cfg.InitialDelay <= 0 {
+		cfg.InitialDelay = DefaultBackoffConfig.InitialDelay
+	}
+	if cfg.MaxDelay <= 0 {
+		cfg.MaxDelay = DefaultBackoffConfig.MaxDelay
+	}
+	if cfg.MaxDelay < cfg.InitialDelay {
+		cfg.MaxDelay = cfg.InitialDelay
+	}
+	if cfg.Multiplier < 1 {
+		cfg.Multiplier = DefaultBackoffConfig.Multiplier
+	}
+	if cfg.JitterFraction < 0 {
+		cfg.JitterFraction = 0
+	} else if cfg.JitterFraction > 1 {
+		cfg.JitterFraction = 1
+	}
+	return cfg
+}
+
 func (b *KindnessBudget) maybeBackoff(ctx context.Context, id string, cfg BackoffConfig) error {
 	b.mu.RLock()
 	bo, ok := b.backoff[id]
@@ -343,10 +396,12 @@ func (b *KindnessBudget) maybeBackoff(ctx context.Context, id string, cfg Backof
 	}
 
 	if time.Now().Before(bo.deadline) {
+		timer := time.NewTimer(time.Until(bo.deadline))
+		defer timer.Stop()
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Until(bo.deadline)):
+		case <-timer.C:
 		}
 	}
 	return nil
@@ -359,11 +414,12 @@ func (b *KindnessBudget) setBackoff(id string, cfg BackoffConfig) {
 	if !ok {
 		bo = &backoffState{delay: cfg.InitialDelay}
 		b.backoff[id] = bo
+	} else {
+		bo.delay = time.Duration(math.Min(
+			float64(bo.delay)*cfg.Multiplier,
+			float64(cfg.MaxDelay),
+		))
 	}
-	bo.delay = time.Duration(math.Min(
-		float64(bo.delay)*cfg.Multiplier,
-		float64(cfg.MaxDelay),
-	))
 	// Add jitter.
 	jitter := time.Duration(float64(bo.delay) * cfg.JitterFraction * math.Max(0.1, mathrandFloat()))
 	bo.deadline = time.Now().Add(bo.delay).Add(jitter)
@@ -380,6 +436,6 @@ func (b *KindnessBudget) clearBackoff(id string) {
 // rand.Float64() when reproducibility is not needed.
 var mathrandFloat = func() float64 {
 	v := int64(2654435769) // Knuth multiplicative constant
-	v = v * 1664525 + 1013904223
+	v = v*1664525 + 1013904223
 	return float64(v&0x7FFFFFFF) / float64(0x7FFFFFFF)
 }

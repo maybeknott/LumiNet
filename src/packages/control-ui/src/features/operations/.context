@@ -1,0 +1,13 @@
+# src/packages/control-ui/src/features/operations
+
+## Purpose
+Owns Control UI behavior for long-running or actionable daemon operations presented to the user.
+
+## Contents
+Contains operation-oriented hooks, state coordination, and feature components for starting, observing, or presenting operational work.
+
+## Interfaces and dependencies
+Consumes canonical API/transport contracts and shared UI primitives and is composed by application pages/routes.
+
+## Invariants
+Operation state transitions remain explicit, loading/error/cancellation are represented rather than hidden, duplicate side effects are avoided, and stale responses must not regress newer operation state.

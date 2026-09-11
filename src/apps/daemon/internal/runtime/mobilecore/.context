@@ -8,11 +8,11 @@ Deep mobile runtime owner: CoreController, TUN lifecycle, canonical mobile/evasi
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (5): `config.go`, `config_test.go`, `controller.go`, `controller_test.go`, `types.go`
+- Direct files (9): `config.go`, `config_test.go`, `controller.go`, `controller_test.go`, `tun_bridge.go`, `tun_bridge_other.go`, `tun_bridge_test.go`, `tun_bridge_unix.go`, `types.go`
 
 ## Interfaces and dependencies
 - Go package: `mobilecore`.
-- Notable exported surface: `CheckVersionX`, `ConfigFromEvasion`, `ConfigToEvasion`, `CoreCallbackHandler`, `CoreController`, `DefaultConfig`, `InitCoreEnv`, `IsRunning`, `MobileConfig`, `NewCoreController` …
+- Notable exported surface: `BuildDNSResponse`, `CheckVersionX`, `ConfigFromEvasion`, `ConfigToEvasion`, `CoreCallbackHandler`, `CoreController`, `DNSMapper`, `DefaultConfig`, `DupFd`, `FakeDNSProxy` …
 - Daemon-local dependencies: `internal/foundation/trafficstats`, `internal/platform/mobilehost`, `internal/runtime/proxy`.
 - Direct daemon callers: `internal/adapters/mobilebind`.
 

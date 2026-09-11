@@ -355,7 +355,9 @@ def main() -> int:
     profile = (ROOT / "src/apps/daemon/internal/integrations/sub/profile_service.go").read_text(encoding="utf-8")
     egress = (ROOT / "src/apps/daemon/internal/integrations/sub/egress.go").read_text(encoding="utf-8")
     subapi = (ROOT / "src/apps/daemon/internal/adapters/api/handlers_subscription_profiles.go").read_text(encoding="utf-8")
-    if "const maxProfileMirrors = 3" not in profile or "LastSourceURL" not in profile or "SourceHealthByURL" not in profile:
+    # The mirror ceiling may be declared in a const block; require the
+    # identifier with its value rather than one specific formatting.
+    if re.search(r"\bmaxProfileMirrors\s*=\s*3\b", profile) is None or "LastSourceURL" not in profile or "SourceHealthByURL" not in profile:
         errors.append("bounded source mirror/last-good state missing")
     if "func ValidateProfileSourceURL" not in egress or "validateSubscriptionSources" not in subapi:
         errors.append("subscription source static admission boundary missing")

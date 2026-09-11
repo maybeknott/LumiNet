@@ -44,6 +44,10 @@ type EgressConfig struct {
 	Enabled bool
 	Timeout time.Duration
 	Resolve func(context.Context, string) ([]netip.Addr, error)
+	// UserAgent overrides the default "LumiNet/1.0" header sent with every
+	// fetch. Callers that fetch public web pages (e.g. Telegram channel
+	// previews) can impersonate a browser; it must never carry credentials.
+	UserAgent string
 }
 
 // EgressResponse is the bounded result of a validated remote fetch.
@@ -55,10 +59,11 @@ type EgressResponse struct {
 
 // Egress performs opt-in, SSRF-safe subscription fetches.
 type Egress struct {
-	enabled bool
-	timeout time.Duration
-	client  *http.Client
-	resolve func(context.Context, string) ([]netip.Addr, error)
+	enabled   bool
+	timeout   time.Duration
+	client    *http.Client
+	resolve   func(context.Context, string) ([]netip.Addr, error)
+	userAgent string
 }
 
 // NewEgress creates a subscription egress boundary. It is disabled by default.
@@ -73,7 +78,11 @@ func NewEgress(config EgressConfig) *Egress {
 			return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 		}
 	}
-	egress := &Egress{enabled: config.Enabled, timeout: timeout, resolve: resolve}
+	userAgent := config.UserAgent
+	if userAgent == "" {
+		userAgent = "LumiNet/1.0"
+	}
+	egress := &Egress{enabled: config.Enabled, timeout: timeout, resolve: resolve, userAgent: userAgent}
 	dialer := &net.Dialer{Timeout: timeout}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
@@ -176,7 +185,7 @@ func (e *Egress) fetch(ctx context.Context, rawURL, etag string) (EgressResponse
 	if err != nil {
 		return EgressResponse{}, fmt.Errorf("create subscription request: %w", err)
 	}
-	req.Header.Set("User-Agent", "LumiNet/1.0")
+	req.Header.Set("User-Agent", e.userAgent)
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
 	}

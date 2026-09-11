@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/networking/serverless
+
+## Purpose
+Integrates serverless relay or transport endpoints into the daemon networking stack.
+
+## Contents
+Contains Go client/configuration helpers for supported serverless networking backends and their request/response handling.
+
+## Interfaces and dependencies
+Consumed by networking/routing orchestration and depends on HTTP/TLS/network clients plus deployment/configuration contracts.
+
+## Invariants
+Remote responses are treated as untrusted, outbound destinations obey egress policy, requests are cancellable and bounded, and backend failures cannot silently become successful transport state.

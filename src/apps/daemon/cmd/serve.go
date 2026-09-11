@@ -6,15 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/maybeknott/luminet/internal/runtime/decoy"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -27,6 +24,7 @@ import (
 	"github.com/maybeknott/luminet/internal/foundation/config"
 	"github.com/maybeknott/luminet/internal/foundation/store"
 	"github.com/maybeknott/luminet/internal/platform/system"
+	"github.com/maybeknott/luminet/internal/runtime/decoy"
 	"github.com/maybeknott/luminet/internal/runtime/runtimecore"
 	"github.com/maybeknott/luminet/internal/workflows/jobs"
 	"github.com/spf13/cobra"
@@ -71,7 +69,9 @@ func init() {
 	serveCmd.Flags().StringVar(&serveHost, "host", "127.0.0.1", "HTTP bind address")
 	serveCmd.Flags().StringVar(&apiKey, "api-key", "", "API key for authentication (auto-generated for the session when empty)")
 	serveCmd.Flags().StringSliceVar(&allowedOrigins, "allowed-origins", nil, "Allowed CORS origins (comma-separated; default: localhost only)")
-	serveCmd.Flags().BoolVar(&noBrowser, "no-browser", false, "do not open the legacy web console automatically")
+	serveCmd.Flags().BoolVar(&noBrowser, "no-browser", false, "do not open the legacy web console automatically (deprecated: the legacy web console is retired and the browser is never opened)")
+	_ = serveCmd.Flags().MarkHidden("no-browser")
+	_ = serveCmd.Flags().MarkDeprecated("no-browser", "the legacy web console is retired; this flag has no effect")
 	serveCmd.Flags().BoolVar(&webMode, "web", false, "start the retired embedded web console instead of native desktop")
 	serveCmd.Flags().BoolVar(&stdioMode, "stdio", false, "start stdio MCP engine instead of HTTP server")
 }
@@ -371,20 +371,4 @@ func defaultLocalOrigins(port int) []string {
 		fmt.Sprintf("http://127.0.0.1:%d", port),
 		fmt.Sprintf("http://localhost:%d", port),
 	}
-}
-
-// openBrowser opens the given URL in the default system browser.
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
-	case "darwin":
-		cmd = exec.Command("open", url)
-	default:
-		cmd = exec.Command("xdg-open", url)
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
 }

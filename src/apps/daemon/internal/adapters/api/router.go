@@ -19,7 +19,6 @@ import (
 	"github.com/maybeknott/luminet/internal/workflows/jobs"
 )
 
-// ServerConfig holds configuration for the API server.
 type ServerConfig struct {
 	Host           string
 	Port           int
@@ -30,7 +29,6 @@ type ServerConfig struct {
 	EnableWeb      bool
 }
 
-// Server holds all dependencies for the API layer.
 type Server struct {
 	config              *ServerConfig
 	router              *gin.Engine
@@ -42,12 +40,12 @@ type Server struct {
 	httpServer          *http.Server
 	capabilities        *capabilities.Registry
 	wsSessions          *websocketSessionIssuer
+	browserSessions     *browserSessionIssuer
 	hubCancel           context.CancelFunc
 	profileService      *sub.ProfileService
 	subscriptionRuntime *proxy.SubscriptionRuntime
 }
 
-// NewServer creates a new API server with all dependencies wired.
 func NewServer(ctx context.Context, config *ServerConfig, jobMgr *jobs.JobManager, st *store.DB, cfgMgr *config.Manager, reg *capabilities.Registry) *Server {
 	gin.SetMode(gin.ReleaseMode)
 	if ctx == nil {
@@ -57,10 +55,7 @@ func NewServer(ctx context.Context, config *ServerConfig, jobMgr *jobs.JobManage
 	hub := NewHub(jobMgr)
 	go hub.Run(hubCtx)
 
-	profileService := sub.NewProfileServiceWithContext(
-		ctx,
-		sub.NewEgress(sub.EgressConfig{Enabled: true}),
-	)
+	profileService := sub.NewProfileServiceWithContext(ctx, sub.NewEgress(sub.EgressConfig{Enabled: true}))
 	profileService.StartAutoRefresh(time.Minute)
 	subscriptionRuntime := proxy.NewSubscriptionRuntime(proxy.NewCoreManager(proxy.CoreTypeAuto, ""))
 
@@ -73,6 +68,7 @@ func NewServer(ctx context.Context, config *ServerConfig, jobMgr *jobs.JobManage
 		startTime:           time.Now(),
 		capabilities:        reg,
 		wsSessions:          newWebsocketSessionIssuer(),
+		browserSessions:     newBrowserSessionIssuer(),
 		hubCancel:           hubCancel,
 		profileService:      profileService,
 		subscriptionRuntime: subscriptionRuntime,
@@ -87,7 +83,6 @@ func NewServer(ctx context.Context, config *ServerConfig, jobMgr *jobs.JobManage
 	return s
 }
 
-// SetupRouter configures all route groups, middleware, and handlers.
 func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
 	if err := r.SetTrustedProxies(nil); err != nil {
@@ -100,22 +95,17 @@ func (s *Server) SetupRouter() *gin.Engine {
 	s.setupWebSocketRoute(r)
 
 	api := r.Group("/api")
-	api.Use(AuthMiddleware(s.config.APIKey))
+	api.Use(AuthMiddlewareWithBrowserSession(s.config.APIKey, s.browserSessions))
 	routeCatalog{server: s}.register(api)
 
 	if !s.config.EnableWeb {
-		r.NoRoute(func(c *gin.Context) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-		})
+		r.NoRoute(func(c *gin.Context) { c.JSON(http.StatusNotFound, gin.H{"error": "not found"}) })
 		return r
 	}
 
-	// Serve the shared embedded control UI only when explicitly enabled.
 	webFS := s.config.WebDist
 	if webFS == nil {
-		r.NoRoute(func(c *gin.Context) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-		})
+		r.NoRoute(func(c *gin.Context) { c.JSON(http.StatusNotFound, gin.H{"error": "not found"}) })
 	} else {
 		fileServer := http.FileServer(http.FS(webFS))
 		serveIndexHTML := func(c *gin.Context) {
@@ -125,18 +115,20 @@ func (s *Server) SetupRouter() *gin.Engine {
 				return
 			}
 
-			// Deliver the API key to the browser as an HttpOnly, SameSite=Strict
-			// cookie rather than embedding it in the page as a JS global. The
-			// cookie is unreadable from JavaScript, never appears in URLs or
-			// logs, and is sent automatically on same-origin REST and WebSocket
-			// requests. SameSite=Strict also blocks cross-site CSRF.
 			if s.config.APIKey != "" {
+				token, expiresAt, err := s.browserSessions.issue(time.Now())
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create browser session"})
+					return
+				}
 				http.SetCookie(c.Writer, &http.Cookie{
 					Name:     SessionCookieName,
-					Value:    s.config.APIKey,
+					Value:    token,
 					Path:     "/",
 					HttpOnly: true,
 					SameSite: http.SameSiteStrictMode,
+					Expires:  expiresAt,
+					MaxAge:   int(time.Until(expiresAt).Seconds()),
 				})
 			}
 
@@ -162,12 +154,10 @@ func (s *Server) SetupRouter() *gin.Engine {
 
 			f, err := webFS.Open(filePath)
 			if err == nil {
-				f.Close()
+				_ = f.Close()
 				fileServer.ServeHTTP(c.Writer, c.Request)
 				return
 			}
-
-			// Fallback to index.html for SPA routing
 			serveIndexHTML(c)
 		})
 	}
@@ -175,8 +165,8 @@ func (s *Server) SetupRouter() *gin.Engine {
 	return r
 }
 
-// setupMiddleware registers global middleware on the Gin engine.
 func (s *Server) setupMiddleware(r *gin.Engine) {
+	r.Use(AuthorityMiddleware(s.config.Host, s.config.Port))
 	r.Use(RecoveryMiddleware())
 	r.Use(RequestLogger())
 	r.Use(CorsMiddleware(s.config.AllowedOrigins))
@@ -185,18 +175,12 @@ func (s *Server) setupMiddleware(r *gin.Engine) {
 	}
 }
 
-// setupHealthRoutes registers the /health endpoint.
 func (s *Server) setupHealthRoutes(r *gin.Engine) {
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "ok",
-			"timestamp": time.Now().UTC(),
-			"version":   buildinfo.Version,
-		})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "timestamp": time.Now().UTC(), "version": buildinfo.Version})
 	})
 }
 
-// setupWebSocketRoute registers the /ws endpoint for the WebSocket hub.
 func (s *Server) setupWebSocketRoute(r *gin.Engine) {
 	r.GET("/ws", func(c *gin.Context) {
 		s.hub.ServeWs(c.Writer, c.Request, s.config.AllowedOrigins, func(token string) bool {
@@ -205,7 +189,6 @@ func (s *Server) setupWebSocketRoute(r *gin.Engine) {
 	})
 }
 
-// Run starts the HTTP server and blocks until shutdown.
 func (s *Server) Run() error {
 	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 	s.httpServer = &http.Server{
@@ -218,7 +201,6 @@ func (s *Server) Run() error {
 	return s.httpServer.ListenAndServe()
 }
 
-// Shutdown gracefully stops the HTTP server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	var shutdownErrors []error
 	if s.subscriptionRuntime != nil {
@@ -249,7 +231,4 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return errors.Join(shutdownErrors...)
 }
 
-// Hub returns the WebSocket hub for broadcasting events.
-func (s *Server) Hub() *Hub {
-	return s.hub
-}
+func (s *Server) Hub() *Hub { return s.hub }

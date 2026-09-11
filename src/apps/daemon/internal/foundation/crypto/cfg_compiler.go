@@ -15,6 +15,8 @@ import (
 	"sync"
 )
 
+const maxCFGFrameSize = int(^uint16(0))
+
 // CFGCompiler handles context-free grammar compilation for dynamic protocol layout obfuscation
 type CFGCompiler struct {
 	seed []byte
@@ -61,6 +63,13 @@ func (cfg *CFGCompiler) getLayout(prng *mrand.Rand) []string {
 
 // Compile obfuscates a payload according to CFG production rules and mimicry options
 func (cfg *CFGCompiler) Compile(payload []byte, mimicType string) ([]byte, error) {
+	// The payload and outer frame lengths are both encoded as uint16. Reject
+	// oversize input before any narrowing conversion so the wire length can never
+	// wrap and cause peers to parse a truncated or desynchronized frame.
+	if len(payload) > maxCFGFrameSize {
+		return nil, fmt.Errorf("CFG payload too large: %d > %d", len(payload), maxCFGFrameSize)
+	}
+
 	// 1. Generate random 8-byte salt
 	salt := make([]byte, 8)
 	if _, err := rand.Read(salt); err != nil {
@@ -91,11 +100,15 @@ func (cfg *CFGCompiler) Compile(payload []byte, mimicType string) ([]byte, error
 		}
 	}
 
-	// Calculate and write padding based on mimicry/entropy-shaping strategy
+	// Calculate and write padding based on mimicry/entropy-shaping strategy.
 	padding := cfg.generateMimicPadding(prng, mimicType)
+	frameLen := len(salt) + headerBuf.Len() + len(padding) + len(payload)
+	if frameLen > maxCFGFrameSize {
+		return nil, fmt.Errorf("CFG frame too large: %d > %d", frameLen, maxCFGFrameSize)
+	}
 
 	// Construct overall packet: [Salt (8)] [Header (5)] [Padding (Var)] [Payload (Var)]
-	var packet bytes.Buffer
+	packet := bytes.NewBuffer(make([]byte, 0, frameLen))
 	packet.Write(salt)
 	packet.Write(headerBuf.Bytes())
 	if len(padding) > 0 {
@@ -110,6 +123,9 @@ func (cfg *CFGCompiler) Compile(payload []byte, mimicType string) ([]byte, error
 func (cfg *CFGCompiler) Decompile(packet []byte) ([]byte, error) {
 	if len(packet) < 13 { // Salt(8) + Header(5) = 13 bytes minimum
 		return nil, errors.New("packet too short")
+	}
+	if len(packet) > maxCFGFrameSize {
+		return nil, fmt.Errorf("CFG frame too large: %d > %d", len(packet), maxCFGFrameSize)
 	}
 
 	salt := packet[:8]
@@ -140,7 +156,6 @@ func (cfg *CFGCompiler) Decompile(packet []byte) ([]byte, error) {
 		}
 	}
 
-	// Validate dynamic grammar markers
 	if parsedMagic != expectedMagic {
 		return nil, fmt.Errorf("invalid dynamic magic bytes: expected 0x%04x, got 0x%04x", expectedMagic, parsedMagic)
 	}
@@ -148,8 +163,7 @@ func (cfg *CFGCompiler) Decompile(packet []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid dynamic flags: expected 0x%02x, got 0x%02x", expectedFlags, parsedFlags)
 	}
 
-	// Determine payload offset. We must account for the dynamic padding
-	totalHeaderLen := 8 + 5 // Salt + Header
+	totalHeaderLen := 8 + 5
 	paddingLen := len(packet) - totalHeaderLen - int(parsedLength)
 	if paddingLen < 0 {
 		return nil, errors.New("corrupted packet length or missing payload data")
@@ -159,46 +173,38 @@ func (cfg *CFGCompiler) Decompile(packet []byte) ([]byte, error) {
 	return packet[payloadOffset:], nil
 }
 
-// generateMimicPadding creates mimicry traffic patterns to shape packet statistical entropy profile
 func (cfg *CFGCompiler) generateMimicPadding(prng *mrand.Rand, mimicType string) []byte {
 	switch strings.ToLower(mimicType) {
 	case "https", "tls":
-		// Mimic TLS Handshake records (low entropy headers)
 		paddingLen := prng.Intn(32) + 16
 		padding := make([]byte, paddingLen)
-		padding[0] = 0x16 // Handshake record type
-		padding[1] = 0x03 // TLS version major
-		padding[2] = 0x01 // TLS version minor (TLS 1.0/1.2/1.3 hello fallback)
+		padding[0] = 0x16
+		padding[1] = 0x03
+		padding[2] = 0x01
 		binary.BigEndian.PutUint16(padding[3:5], uint16(paddingLen-5))
 		for i := 5; i < paddingLen; i++ {
 			padding[i] = byte(prng.Intn(256))
 		}
 		return padding
-
 	case "dns":
-		// Mimic DNS query format header
 		padding := make([]byte, 12)
-		binary.BigEndian.PutUint16(padding[0:2], uint16(prng.Uint32())) // Trans ID
-		binary.BigEndian.PutUint16(padding[2:4], 0x0100)                // Flags: Standard query
-		binary.BigEndian.PutUint16(padding[4:6], 0x0001)                // Questions = 1
-		binary.BigEndian.PutUint16(padding[6:8], 0x0000)                // Answers = 0
-		binary.BigEndian.PutUint16(padding[8:10], 0x0000)               // Authority = 0
-		binary.BigEndian.PutUint16(padding[10:12], 0x0000)              // Additional = 0
+		binary.BigEndian.PutUint16(padding[0:2], uint16(prng.Uint32()))
+		binary.BigEndian.PutUint16(padding[2:4], 0x0100)
+		binary.BigEndian.PutUint16(padding[4:6], 0x0001)
+		binary.BigEndian.PutUint16(padding[6:8], 0x0000)
+		binary.BigEndian.PutUint16(padding[8:10], 0x0000)
+		binary.BigEndian.PutUint16(padding[10:12], 0x0000)
 		return padding
-
 	case "stun":
-		// Mimic STUN Binding Request header
 		padding := make([]byte, 20)
-		binary.BigEndian.PutUint16(padding[0:2], 0x0001)     // Binding Request
-		binary.BigEndian.PutUint16(padding[2:4], 0x0000)     // Message Length (0 attributes)
-		binary.BigEndian.PutUint32(padding[4:8], 0x2112A442) // Magic Cookie
+		binary.BigEndian.PutUint16(padding[0:2], 0x0001)
+		binary.BigEndian.PutUint16(padding[2:4], 0x0000)
+		binary.BigEndian.PutUint32(padding[4:8], 0x2112A442)
 		for i := 8; i < 20; i++ {
-			padding[i] = byte(prng.Intn(256)) // Transaction ID
+			padding[i] = byte(prng.Intn(256))
 		}
 		return padding
-
 	default:
-		// Light/Default random noise bytes
 		paddingLen := prng.Intn(16)
 		if paddingLen == 0 {
 			return nil
@@ -240,15 +246,16 @@ func (c *CFGConn) Write(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if len(frame) > maxCFGFrameSize {
+		return 0, fmt.Errorf("CFG frame too large: %d > %d", len(frame), maxCFGFrameSize)
+	}
 
-	length := uint16(len(frame))
-	lengthBuf := make([]byte, 2)
-	binary.BigEndian.PutUint16(lengthBuf, length)
-
-	if _, err := c.Conn.Write(lengthBuf); err != nil {
+	var lengthBuf [2]byte
+	binary.BigEndian.PutUint16(lengthBuf[:], uint16(len(frame)))
+	if err := writeAll(c.Conn, lengthBuf[:]); err != nil {
 		return 0, err
 	}
-	if _, err := c.Conn.Write(frame); err != nil {
+	if err := writeAll(c.Conn, frame); err != nil {
 		return 0, err
 	}
 
@@ -263,11 +270,14 @@ func (c *CFGConn) Read(b []byte) (int, error) {
 		return c.readBuf.Read(b)
 	}
 
-	lengthBuf := make([]byte, 2)
-	if _, err := io.ReadFull(c.reader, lengthBuf); err != nil {
+	var lengthBuf [2]byte
+	if _, err := io.ReadFull(c.reader, lengthBuf[:]); err != nil {
 		return 0, err
 	}
-	length := binary.BigEndian.Uint16(lengthBuf)
+	length := int(binary.BigEndian.Uint16(lengthBuf[:]))
+	if length < 13 {
+		return 0, fmt.Errorf("invalid CFG frame length: %d", length)
+	}
 
 	frame := make([]byte, length)
 	if _, err := io.ReadFull(c.reader, frame); err != nil {
@@ -281,4 +291,18 @@ func (c *CFGConn) Read(b []byte) (int, error) {
 
 	c.readBuf.Write(plaintext)
 	return c.readBuf.Read(b)
+}
+
+func writeAll(w io.Writer, data []byte) error {
+	for len(data) > 0 {
+		n, err := w.Write(data)
+		if err != nil {
+			return err
+		}
+		if n <= 0 {
+			return io.ErrShortWrite
+		}
+		data = data[n:]
+	}
+	return nil
 }

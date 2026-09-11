@@ -112,7 +112,10 @@ func main() {
 		}
 		parsed++
 		relSlash := filepath.ToSlash(rel)
-		if strings.HasPrefix(relSlash, "src/") || strings.HasPrefix(relSlash, "labs/") {
+		// Declaration collision admission is a production-source contract. Labs is
+		// preserved as non-authoritative research and may intentionally contain
+		// independent alternative packages with duplicate declarations.
+		if strings.HasPrefix(relSlash, "src/") {
 			dir := filepath.Dir(path)
 			dirs[dir] = append(dirs[dir], entry.Name())
 		}
@@ -150,7 +153,7 @@ func main() {
 				fset := token.NewFileSet()
 				file, parseErr := parser.ParseFile(fset, full, nil, 0)
 				if parseErr != nil {
-					continue // already reported by the syntax pass
+					continue
 				}
 				pkg := file.Name.Name
 				table := byPackage[pkg]

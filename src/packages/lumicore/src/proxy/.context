@@ -4,7 +4,7 @@
 Native proxy protocol/runtime helpers.
 
 ## Contents
-- Direct files (53): `brutal_cc.rs`, `flow_trie.rs`, `handler.rs`, `mitm_fronting_buffer.rs`, `mitm_fronting_core.rs`, `mitm_fronting_diagnostics.rs`, `mitm_fronting_diagnostics_helper.rs`, `mitm_fronting_diagnostics_tuning.rs`, `mitm_fronting_diagnostics_tuning_helper.rs`, `mitm_fronting_flow_control.rs`, `mitm_fronting_flow_control_helper.rs`, `mitm_fronting_flow_control_tuning.rs` …
+- Direct files (85): `automated_tls_server_configurator.rs`, `autonomous_ingest_pipeline.rs`, `brook_stream.rs`, `brutal_cc.rs`, `clash_provider_synthesizer.rs`, `community_feed_parser.rs`, `edge_subscription_pipeline.rs`, `edge_websocket_codec.rs`, `flow_trie.rs`, `handler.rs`, `header_intercept_router.rs`, `http_chunk_carrier.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

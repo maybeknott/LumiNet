@@ -224,8 +224,12 @@ def check_tls_guardrails():
 
 def check_privileged_guardrails():
     allowed={
+        # The historical transport/ shims stay exported for ABI continuity;
+        # the canonical implementations live with their owning modules.
         'packages/lumicore/src/transport/ebpf_interceptor.rs',
         'packages/lumicore/src/transport/ebpf_redirector.rs',
+        'packages/lumicore/src/dns/ebpf_dns_drop_filter.rs',
+        'packages/lumicore/src/system/ebpf_redirector.rs',
     }
     found={str(p.relative_to(ROOT/'src')) for p in (ROOT/'src').rglob('*') if 'ebpf' in p.name.lower()}
     unexpected=sorted(found-allowed)

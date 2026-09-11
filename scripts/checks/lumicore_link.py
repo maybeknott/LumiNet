@@ -12,11 +12,24 @@ import sys
 from pathlib import Path
 
 MARKER = "native-static-libs:"
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def strip_ansi(value: str) -> str:
+    """Remove terminal control sequences from Cargo diagnostics before parsing.
+
+    `cargo rustc --print native-static-libs` writes its note to stderr and may
+    decorate it even when stdout is captured. Control bytes must never become
+    part of CGO_LDFLAGS: cgo treats the decorated token as a different library
+    name (for example `-lkernel32<ESC>[0m`).
+    """
+    return ANSI_ESCAPE_RE.sub("", value)
 
 
 def parse_native_static_libs(output: str) -> list[str]:
     matches: list[list[str]] = []
-    for line in output.splitlines():
+    for raw_line in output.splitlines():
+        line = strip_ansi(raw_line)
         if MARKER not in line:
             continue
         payload = line.split(MARKER, 1)[1].strip()

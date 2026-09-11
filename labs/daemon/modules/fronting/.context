@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/networking/fronting
+
+## Purpose
+Daemon fronting implementation module.
+
+## Architectural role
+- Daemon dependency band: `networking` (rank 2; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (23): `backend_probe.go`, `backend_probe_test.go`, `bench_shapes_test.go`, `cdn_pool_dialer.go`, `cdn_pool_dialer_test.go`, `cf_ip_pool.go`, `cloudflared.go`, `cloudflared_test.go`, `envelope.go`, `exit_node.go`, `exit_node_test.go`, `fronted_dialer.go` …
+
+## Interfaces and dependencies
+- Go package: `fronting`.
+- Notable exported surface: `BackendProbeConfig`, `BackendProbeHandler`, `BackendProbeResult`, `BackendProber`, `BuildBatchPayload`, `BuildRequestPayload`, `BuildSNIPool`, `CFIP`, `CFIPPool`, `CdnCandidate` …
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- `networking` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

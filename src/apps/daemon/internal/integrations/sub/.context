@@ -8,12 +8,12 @@ Subscription ingestion owner: safe remote fetch, format detection/normalization,
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (42): `aggregate.go`, `aggregate_concurrency_test.go`, `aggregate_test.go`, `candyconnect_presets.go`, `clashconfig.go`, `client_configs_list.go`, `convert.go`, `convert_test.go`, `deeplink.go`, `deeplink_test.go`, `dohot_frp_presets.go`, `egress.go` …
+- Direct files (51): `aggregate.go`, `aggregate_concurrency_test.go`, `aggregate_test.go`, `candyconnect_presets.go`, `clashconfig.go`, `client_configs_list.go`, `convert.go`, `convert_test.go`, `deeplink.go`, `deeplink_test.go`, `dohot_frp_presets.go`, `egress.go` …
 
 ## Interfaces and dependencies
 - Go package: `sub`.
 - Notable exported surface: `AggregateSubscriptions`, `BuildClashYAML`, `CandyConnectPreset`, `CandyConnectPresets`, `CandyConnectProtocol`, `ClashConfig`, `ClientConfigsList`, `ContentParser`, `ConversionIssue`, `ConversionReport` …
-- Daemon-local dependencies: `internal/foundation/netpolicy`, `internal/foundation/redact`, `internal/foundation/resourcebudget`, `internal/integrations/captchaclient`, `internal/networking/geoip`, `internal/networking/proxyconfig`.
+- Daemon-local dependencies: `internal/foundation/netpolicy`, `internal/foundation/redact`, `internal/foundation/resourcebudget`, `internal/foundation/textconfusables`, `internal/integrations/captchaclient`, `internal/networking/dns`, `internal/networking/geoip`, `internal/networking/proxyconfig`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`.
 
 ## Invariants

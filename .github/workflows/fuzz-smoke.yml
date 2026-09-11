@@ -1,0 +1,43 @@
+name: Parser Fuzz Smoke
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+
+permissions:
+  contents: read
+
+env:
+  NIGHTLY_TOOLCHAIN: nightly-2026-09-01
+  CARGO_FUZZ_VERSION: '0.13.2'
+
+jobs:
+  lumicore-fuzz-smoke:
+    name: LumiCore parser fuzz smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install pinned nightly
+        shell: bash
+        run: |
+          rustup toolchain install "${NIGHTLY_TOOLCHAIN}" --profile minimal
+          rustup component add --toolchain "${NIGHTLY_TOOLCHAIN}" rust-src
+
+      - name: Install pinned cargo-fuzz
+        shell: bash
+        run: cargo install cargo-fuzz --version "${CARGO_FUZZ_VERSION}" --locked
+
+      - name: Run bounded QUIC parser fuzz smoke
+        working-directory: src/packages/lumicore
+        shell: bash
+        run: |
+          cargo "+${NIGHTLY_TOOLCHAIN}" fuzz run quic_initial_parse -- \
+            -runs=256 \
+            -max_len=4096 \
+            -timeout=5

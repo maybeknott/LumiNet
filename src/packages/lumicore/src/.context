@@ -5,7 +5,7 @@ Reachable Rust crate source graph. Unreachable/foreign alternates belong under l
 
 ## Contents
 - Direct files (8): `engine.rs`, `lib.rs`, `runtime.rs`, `sflow.rs`, `shm.rs`, `tun_vpn.rs`, `types.rs`, `ws_tunnel.rs`
-- Child folders: `cidr/`, `crypto/`, `data/`, `diagnostics/`, `dns/`, `evasion/`, `ffi/`, `hs/`, `http/`, `icmp/`, `netutil/`, `obfuscation/`, `platform/`, `proxy/`, `relay/`, `routing/`, `scanner/`, `security/`, `sni/`, `socks/`, `speed/`, `system/`, `tcp/`, `tls/`, `transport/`, `wg/`.
+- Child folders: `cidr/`, `codec/`, `crypto/`, `data/`, `diagnostics/`, `dns/`, `evasion/`, `ffi/`, `hs/`, `http/`, `icmp/`, `jobs/`, `multipath/`, `netutil/`, `obfuscation/`, `platform/`, `proxy/`, `quic/`, `relay/`, `routing/`, `scanner/`, `security/`, `sni/`, `socks/`, `speed/`, `system/`, `tcp/`, `tls/`, `transport/`, `wg/`.
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

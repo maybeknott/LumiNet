@@ -1,3 +1,5 @@
+//go:build windows
+
 #include <windows.h>
 #include <fwpmu.h>
 #include <stdio.h>

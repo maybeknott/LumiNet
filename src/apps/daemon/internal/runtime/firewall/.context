@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/runtime/firewall
+
+## Purpose
+Coordinates runtime firewall state required by LumiNet networking behavior.
+
+## Contents
+Contains Go firewall rules/models and apply, update, or teardown orchestration used while the daemon is running.
+
+## Interfaces and dependencies
+Consumed by runtime/network lifecycle code and delegates platform-specific mutation through lower platform/system boundaries.
+
+## Invariants
+Firewall changes are validated, idempotent or safely repeatable, and paired with rollback/cleanup; failures must not be reported as applied state, and daemon shutdown must release rules it owns without deleting unrelated system policy.

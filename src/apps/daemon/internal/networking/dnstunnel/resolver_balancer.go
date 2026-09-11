@@ -15,14 +15,14 @@ import (
 type BalancerMode string
 
 const (
-	BalanceRoundRobin       BalancerMode = "round-robin"
-	BalanceRandom           BalancerMode = "random"
-	BalanceLeastLoss        BalancerMode = "least-loss"
-	BalanceLowestLatency    BalancerMode = "lowest-latency"
-	BalanceHybridScore      BalancerMode = "hybrid-score"
-	BalanceLossThenLatency  BalancerMode = "loss-then-latency"
-	BalanceTopNRandom       BalancerMode = "top-n-random"
-	BalanceTopNRoundRobin   BalancerMode = "top-n-round-robin"
+	BalanceRoundRobin      BalancerMode = "round-robin"
+	BalanceRandom          BalancerMode = "random"
+	BalanceLeastLoss       BalancerMode = "least-loss"
+	BalanceLowestLatency   BalancerMode = "lowest-latency"
+	BalanceHybridScore     BalancerMode = "hybrid-score"
+	BalanceLossThenLatency BalancerMode = "loss-then-latency"
+	BalanceTopNRandom      BalancerMode = "top-n-random"
+	BalanceTopNRoundRobin  BalancerMode = "top-n-round-robin"
 )
 
 // ParseBalancerMode validates a mode string.
@@ -138,14 +138,25 @@ func (b *Balancer) Pick() int {
 }
 
 func (b *Balancer) extremum(value func(ResolverPlan) float64, minimum bool) int {
-	n := len(b.plans)
-	best := b.rng.Intn(n) // random tie-break among equal extrema
-	bestVal := value(b.plans[best])
-	for i := 1; i < n; i++ {
+	// Reservoir-sample equal extrema so ties are genuinely randomized while
+	// every resolver, including index zero, participates in the comparison.
+	best := 0
+	bestVal := value(b.plans[0])
+	ties := 1
+	for i := 1; i < len(b.plans); i++ {
 		v := value(b.plans[i])
-		if (minimum && v < bestVal) || (!minimum && v > bestVal) {
-			bestVal = v
+		better := (minimum && v < bestVal) || (!minimum && v > bestVal)
+		if better {
 			best = i
+			bestVal = v
+			ties = 1
+			continue
+		}
+		if v == bestVal {
+			ties++
+			if b.rng.Intn(ties) == 0 {
+				best = i
+			}
 		}
 	}
 	return best

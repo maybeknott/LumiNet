@@ -1,0 +1,20 @@
+# src/packages/control-ui/src/utils
+
+## Purpose
+Source folder `src/packages/control-ui/src/utils`. It groups the files and child modules listed below; behavior ownership stays with the nearest named module.
+
+## Contents
+- Direct files (6): `crypt1.go`, `crypt1.ts`, `crypt1_test.go`, `routingPresets.ts`, `stampFeed.ts`, `v2raynImport.ts`
+
+## Interfaces and dependencies
+- Go package: `crypt1`.
+- Notable exported surface: `ConstantTimeEqual`, `Decrypt`, `Encrypt`, `Payload`, `Plaintext`.
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- This is the sole authored control UI; desktop/daemon hosts consume its canonical bundle rather than forking UI source.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

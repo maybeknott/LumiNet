@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/analysis/speedtest
+
+## Purpose
+Implements daemon-side network speed and throughput measurement used for diagnostics and path evaluation.
+
+## Contents
+Contains Go measurement routines, result models, and helpers for executing bounded speed tests and reporting observations.
+
+## Interfaces and dependencies
+Consumed by daemon analysis/API/workflow layers and depends on networking primitives, timers, and context cancellation.
+
+## Invariants
+Measurements are bounded and cancellable, partial or failed probes remain distinguishable from successful results, and temporary network resources are released on every exit path.

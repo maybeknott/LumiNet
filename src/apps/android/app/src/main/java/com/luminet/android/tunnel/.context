@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/tunnel
+
+## Purpose
+Owns Android tunnel/VPN lifecycle integration for routing LumiNet traffic through platform networking facilities.
+
+## Contents
+Contains Kotlin/Java tunnel controllers, lifecycle helpers, and platform adapters associated with Android VPN operation.
+
+## Interfaces and dependencies
+Interacts with Android VPN/network APIs and shared/native networking contracts; consumed by application service and connection flows.
+
+## Invariants
+Tunnel ownership is singular and lifecycle-aware, cancellation/teardown releases platform resources, and route/DNS mutation must be applied and rolled back consistently.

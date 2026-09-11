@@ -1,0 +1,13 @@
+# src/apps/android/app/src/androidTest/java
+
+## Purpose
+Provides the JVM package root for Android instrumentation-test sources in the application module.
+
+## Contents
+Contains namespace directories that lead to LumiNet device and emulator integration tests.
+
+## Interfaces and dependencies
+Consumed by Gradle's Android instrumentation source-set discovery and compiled against the app-under-test plus Android test APIs.
+
+## Invariants
+Only instrumentation-test sources belong here; production runtime code must remain under the main source set and package boundaries must mirror declared namespaces.

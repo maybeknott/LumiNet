@@ -1,0 +1,108 @@
+name: Android Instrumented
+
+on:
+  push:
+    branches: [main, master, dev, audit/three-report-remediation]
+  pull_request:
+    branches: [main, master, dev]
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.26.5'
+  MOBILE_VERSION: 'v0.0.0-20260709172247-6129f5bee9d5'
+  ANDROID_NDK_VERSION: '28.2.13676358'
+  ANDROID_SYSTEM_IMAGE: 'system-images;android-35;google_apis;x86_64'
+
+jobs:
+  lifecycle-on-device:
+    name: Underlay lifecycle (Android emulator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Java 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 9.5.0
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          gradle-version: '9.5.0'
+          cache-provider: basic
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Install Android build and emulator packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "emulator" \
+            "platform-tools" \
+            "${ANDROID_SYSTEM_IMAGE}"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Build generated mobile AAR
+        shell: bash
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          go install "golang.org/x/mobile/cmd/gomobile@${MOBILE_VERSION}"
+          gomobile init
+          mkdir -p build src/apps/android/app/libs
+          (cd src/apps/daemon && go get -tool "golang.org/x/mobile/cmd/gobind@${MOBILE_VERSION}")
+          (cd src/apps/daemon && gomobile bind -v -androidapi=21 -o ../../../build/luminet.aar -javapkg=com.luminet -target=android github.com/maybeknott/luminet/internal/adapters/mobilebind)
+          cp build/luminet.aar src/apps/android/app/libs/luminet.aar
+
+      - name: Boot Android emulator
+        shell: bash
+        run: |
+          echo no | avdmanager create avd --force --name luminet-ci --package "${ANDROID_SYSTEM_IMAGE}"
+          nohup "$ANDROID_HOME/emulator/emulator" \
+            -avd luminet-ci \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -gpu swiftshader_indirect \
+            > "$RUNNER_TEMP/luminet-emulator.log" 2>&1 &
+          adb wait-for-device
+          booted=0
+          for _ in $(seq 1 180); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+              booted=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$booted" -ne 1 ]; then
+            cat "$RUNNER_TEMP/luminet-emulator.log" >&2
+            exit 1
+          fi
+          adb shell input keyevent 82 || true
+          adb devices -l
+
+      - name: Run instrumented lifecycle regression
+        working-directory: src/apps/android
+        run: gradle --no-daemon :app:connectedDebugAndroidTest
+
+      - name: Print emulator log on failure
+        if: failure()
+        shell: bash
+        run: cat "$RUNNER_TEMP/luminet-emulator.log" || true

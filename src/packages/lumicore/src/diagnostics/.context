@@ -4,7 +4,7 @@
 Native network diagnostic routines.
 
 ## Contents
-- Direct files (3): `html_report.rs`, `mod.rs`, `runbook.rs`
+- Direct files (15): `censorship_anomaly_prober.rs`, `dynamic_proxy_validator.rs`, `edge_gateway_health.rs`, `flow_analyzer_engine.rs`, `html_report.rs`, `link_encoder.rs`, `mod.rs`, `node_diversity_sampler.rs`, `provider_failover_watcher.rs`, `runbook.rs`, `stun_leak_detector.rs`, `subscription_health_classifier.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

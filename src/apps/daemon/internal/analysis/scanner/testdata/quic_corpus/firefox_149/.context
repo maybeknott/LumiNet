@@ -1,0 +1,23 @@
+# src/apps/daemon/internal/analysis/scanner/testdata/quic_corpus/firefox_149
+
+## Purpose
+Active scanner implementation: supported scan/session logic, throttling, protocol probes, progress, and result models.
+
+## Architectural role
+- Daemon dependency band: `analysis` (rank 3; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (3): `expected.json`, `input.pcapng`, `meta.json`
+
+## Interfaces and dependencies
+- See direct files and parent context for the interface consumed by sibling/parent modules.
+
+## Invariants
+- Only product-reachable scanner behavior remains active; preserved dormant corpus stays under labs/.
+- Retirement requires symbol/build-tag/registration/reflection/native proof.
+- `analysis` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

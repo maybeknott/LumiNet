@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/networking/multipath
+
+## Purpose
+Daemon multipath implementation module.
+
+## Architectural role
+- Daemon dependency band: `networking` (rank 2; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (5): `dedup.go`, `fallback_router.go`, `fallback_router_test.go`, `frame.go`, `multipath_test.go`
+
+## Interfaces and dependencies
+- Go package: `multipath`.
+- Notable exported surface: `DecodeFrame`, `DedupBuffer`, `DefaultGapTimeout`, `ErrBufferFull`, `FallbackRouter`, `FallbackTier`, `Frame`, `HeaderSize`, `MaxPayload`, `NewDedupBuffer` …
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- `networking` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

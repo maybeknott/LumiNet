@@ -27,6 +27,13 @@ var (
 	macMu       sync.Mutex
 )
 
+// linuxNetworkProtocol converts an Ethernet protocol value to the byte order
+// expected by Linux AF_PACKET. LumiNet's supported Linux targets (amd64 and
+// arm64) are little-endian, so the kernel-visible uint16 is byte-swapped.
+func linuxNetworkProtocol(value uint16) uint16 {
+	return value<<8 | value>>8
+}
+
 // RegisterMacInfo registers MAC information for a destination IP
 func RegisterMacInfo(ip string, info MacInfo) {
 	macMu.Lock()
@@ -64,7 +71,7 @@ func (l *LinuxPacketInjector) Start(ctx context.Context, listenPort int) error {
 	// Acquire the raw capture resource before reporting success. The previous
 	// implementation launched a goroutine first, so missing CAP_NET_RAW could
 	// make the feature look active while the worker silently idled forever.
-	fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(htons(syscall.ETH_P_IP)))
+	fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(linuxNetworkProtocol(syscall.ETH_P_IP)))
 	if err != nil {
 		fd, err = syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_TCP)
 		if err != nil {
@@ -92,8 +99,7 @@ func (l *LinuxPacketInjector) Start(ctx context.Context, listenPort int) error {
 			default:
 				_ = syscall.SetNonblock(fd, true)
 
-				var from syscall.Sockaddr
-				n, err := syscall.Recvfrom(fd, buf, 0)
+				n, from, err := syscall.Recvfrom(fd, buf, 0)
 				if err != nil {
 					time.Sleep(20 * time.Millisecond)
 					continue
@@ -167,14 +173,14 @@ func RemoveRstDropRule(destination string) error {
 }
 
 func injectLinkLayer(macInfo MacInfo, srcIP, dstIP net.IP, srcPort, dstPort uint16, ttl uint32, flags uint8, seq, ack uint32, payload []byte) error {
-	fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(htons(syscall.ETH_P_IP)))
+	fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, int(linuxNetworkProtocol(syscall.ETH_P_IP)))
 	if err != nil {
 		return fmt.Errorf("failed to open raw AF_PACKET socket: %w", err)
 	}
 	defer syscall.Close(fd)
 
 	sll := &syscall.SockaddrLinklayer{
-		Protocol: htons(syscall.ETH_P_IP),
+		Protocol: linuxNetworkProtocol(syscall.ETH_P_IP),
 		Ifindex:  macInfo.IfIndex,
 	}
 
@@ -267,7 +273,7 @@ func StartBypassSniffer(conn *rawBypassConn) error {
 						continue
 					}
 					ihl := int(buf[0]&0x0F) * 4
-					if n < ihl+20 {
+					if ihl < 20 || n < ihl+20 {
 						continue
 					}
 					srcIP := net.IPv4(buf[12], buf[13], buf[14], buf[15])
@@ -281,6 +287,9 @@ func StartBypassSniffer(conn *rawBypassConn) error {
 						continue
 					}
 					dataOffset := int(tcpSegment[12]>>4) * 4
+					if dataOffset < 20 || dataOffset > len(tcpSegment) {
+						continue
+					}
 					payload := tcpSegment[dataOffset:]
 					recvSeq := binary.BigEndian.Uint32(tcpSegment[4:8])
 					conn.ack = (recvSeq + uint32(len(payload))) & 0xFFFFFFFF

@@ -6,9 +6,11 @@ Autonomous Self-Immunization Engine: detects real-time DPI middlebox interferenc
 ## Contents
 - `types.go`: Core data models: `InterferenceType`, `EvasionAntibody`, `PacketTimingProfile`.
 - `detector.go`: Non-invasive passive detector diagnosing middlebox interference from connection failures and timing anomalies.
-- `synthesizer.go`: Active ladder synthesizer testing evasion variations (SNI split, TCP desync offsets, decoy packet flags) to discover winning antibodies.
-- `store.go`: Thread-safe Immune Memory cache providing exact and wildcard domain matching, efficacy scoring, and JSON export/import.
+- `synthesizer.go`: Active ladder synthesizer testing evasion variations to discover winning antibodies.
+- `store.go`: Thread-safe Immune Memory cache providing domain matching, efficacy scoring, and JSON export/import.
 
 ## Interfaces and dependencies
-- Imported by daemon runtime and routing layers to automatically immunize outbound connections against hostile firewalls without manual user intervention.
-- Belongs to Dependency Band 6 (Analysis); imports Band 3 (`protocols/tlsfragment`) and Band 1 (`foundation/`).
+Imported by daemon runtime and routing layers to diagnose interference and select tested evasions. Belongs to the analysis layer and depends on lower-level protocol and foundation packages.
+
+## Invariants
+Interference observations and stored antibody semantics remain stable for callers; shared store access stays concurrency-safe; probe or synthesis failure must not be silently promoted into a successful antibody, and persisted state must be validated before use.

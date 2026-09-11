@@ -5,7 +5,7 @@ Rust native-core crate. Cargo is the compile/link authority; host ABI changes re
 
 ## Contents
 - Direct files (2): `Cargo.lock`, `Cargo.toml`
-- Child folders: `src/`, `tests/`.
+- Child folders: `fuzz/`, `src/`, `tests/`.
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

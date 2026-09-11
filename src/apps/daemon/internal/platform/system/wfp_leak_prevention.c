@@ -1,3 +1,5 @@
+//go:build windows
+
 #include "wfp_leak_prevention.h"
 #include <fwpmu.h>
 

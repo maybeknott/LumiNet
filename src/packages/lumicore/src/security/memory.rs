@@ -4,6 +4,8 @@
 //! in-memory. Extracted and refined from ISpooferMotion-main.
 
 use std::io;
+#[cfg(target_os = "linux")]
+use std::io::{Read, Seek, SeekFrom, Write};
 
 /// Struct representing a memory region committed in a process address space
 #[derive(Debug, Clone)]
@@ -64,7 +66,6 @@ pub fn get_process_regions(pid: u32) -> io::Result<Vec<MemoryRegion>> {
             }
         }
 
-        // Avoid overflow
         let next_address = address.saturating_add(mem_info.RegionSize);
         if next_address <= address {
             break;
@@ -121,7 +122,6 @@ pub fn get_process_regions(_pid: u32) -> io::Result<Vec<MemoryRegion>> {
     Ok(Vec::new())
 }
 
-/// Zero-dependency byte search algorithm.
 fn find_all_occurrences(buffer: &[u8], target: &[u8]) -> Vec<usize> {
     let mut indices = Vec::new();
     if target.is_empty() || buffer.len() < target.len() {

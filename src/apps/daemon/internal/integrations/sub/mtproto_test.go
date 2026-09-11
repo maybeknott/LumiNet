@@ -2,159 +2,92 @@ package sub
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"strconv"
+	"errors"
 	"testing"
 	"time"
 )
 
-func TestFetchAndTestMTProto(t *testing.T) {
-	// 1. Start a mock TCP listener to simulate a working proxy endpoint
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("failed to start mock TCP listener: %v", err)
-	}
-	defer listener.Close()
-
-	_, portStr, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		t.Fatalf("failed to parse listener port: %v", err)
+func TestParseMTProtoLinks(t *testing.T) {
+	links := []string{
+		"tg://proxy?server=203.0.113.10&port=443&secret=dd00112233445566778899aabbccddeeff",
+		"https://t.me/proxy?server=203.0.113.10&port=443&secret=duplicate",
+		"t.me/proxy?server=198.51.100.7&port=8443&secret=ee00112233445566778899aabbccddeeff",
+		"https://example.com/not-a-proxy",
+		"tg://proxy?server=203.0.113.8&port=0&secret=bad",
+		"tg://proxy?server=203.0.113.9&port=70000&secret=bad",
+		"tg://proxy?server=203.0.113.11&port=443",
 	}
 
-	mockPort, err := strconv.Atoi(portStr)
-	if err != nil {
-		t.Fatalf("failed to convert port to int: %v", err)
+	got := parseMTProtoLinks(links)
+	if len(got) != 2 {
+		t.Fatalf("parseMTProtoLinks() returned %d proxies, want 2: %+v", len(got), got)
 	}
-
-	// Run a goroutine to accept and immediately close connections on the mock TCP port
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				return
-			}
-			conn.Close()
-		}
-	}()
-
-	// 2. Start a mock HTTP server to serve the proxy list JSON
-	mockProxies := []MTProtoProxy{
-		{
-			Host:   "127.0.0.1",
-			Port:   mockPort,
-			Secret: "dd00112233445566778899aabbccddeeff",
-		},
+	if got[0].Host != "203.0.113.10" || got[0].Port != 443 {
+		t.Fatalf("first proxy = %+v", got[0])
 	}
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(mockProxies)
-	}))
-	defer ts.Close()
-
-	// 3. Override mtprotoMirrors for testing
-	oldMirrors := mtprotoMirrors
-	mtprotoMirrors = []string{ts.URL}
-	defer func() { mtprotoMirrors = oldMirrors }()
-
-	// 4. Run the function
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	results, err := FetchAndTestMTProto(ctx)
-	if err != nil {
-		t.Fatalf("FetchAndTestMTProto failed: %v", err)
-	}
-
-	if len(results) != 1 {
-		t.Fatalf("expected 1 tested proxy, got %d", len(results))
-	}
-
-	res := results[0]
-	if res.Host != "127.0.0.1" || res.Port != mockPort {
-		t.Errorf("unexpected proxy data: %+v", res)
-	}
-
-	if res.PingMs < 0 {
-		t.Errorf("expected non-negative ping, got %d", res.PingMs)
+	if got[1].Host != "198.51.100.7" || got[1].Port != 8443 {
+		t.Fatalf("second proxy = %+v", got[1])
 	}
 }
 
-func TestFetchAndTestMTProtoFromChannel(t *testing.T) {
-	// 1. Start a mock TCP listener to simulate a working proxy endpoint
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("failed to start mock TCP listener: %v", err)
+func TestTestAndFilterProxiesUsesInjectedProbe(t *testing.T) {
+	raw := []MTProtoProxy{
+		{Host: "203.0.113.1", Port: 443, Secret: "first"},
+		{Host: "203.0.113.2", Port: 443, Secret: "second"},
 	}
-	defer listener.Close()
-
-	_, portStr, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		t.Fatalf("failed to parse listener port: %v", err)
-	}
-
-	mockPort, err := strconv.Atoi(portStr)
-	if err != nil {
-		t.Fatalf("failed to convert port to int: %v", err)
-	}
-
-	// Run a goroutine to accept and immediately close connections on the mock TCP port
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				return
-			}
-			conn.Close()
+	probe := func(_ context.Context, proxy MTProtoProxy) (time.Duration, error) {
+		if proxy.Host == "203.0.113.1" {
+			return 25 * time.Millisecond, nil
 		}
-	}()
-
-	// 2. Start a mock HTTP server to serve a mock Telegram public channel web HTML
-	mockHtml := fmt.Sprintf(`
-		<html>
-		<body>
-			<div class="tgme_page">
-				<div class="tgme_page_description">
-					Check out this proxy:
-					tg://proxy?server=127.0.0.1&port=%d&secret=dd00112233445566778899aabbccddeeff
-					Also check this web link:
-					href="https://t.me/proxy?server=127.0.0.1&port=%d&secret=dd00112233445566778899aabbccddeeff"
-				</div>
-			</div>
-		</body>
-		</html>
-	`, mockPort, mockPort)
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		_, _ = w.Write([]byte(mockHtml))
-	}))
-	defer ts.Close()
-
-	// 3. Run the function passing ts.URL (which starts with http://)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	results, err := FetchAndTestMTProtoFromChannel(ctx, ts.URL)
-	if err != nil {
-		t.Fatalf("FetchAndTestMTProtoFromChannel failed: %v", err)
+		return 0, errors.New("unreachable")
 	}
 
-	// Because of deduplication, we expect 1 proxy to be parsed and returned
-	if len(results) != 1 {
-		t.Fatalf("expected 1 tested proxy, got %d", len(results))
+	got := testAndFilterProxiesWithProbe(context.Background(), raw, probe)
+	if len(got) != 1 {
+		t.Fatalf("tested proxies = %d, want 1: %+v", len(got), got)
 	}
-
-	res := results[0]
-	if res.Host != "127.0.0.1" || res.Port != mockPort {
-		t.Errorf("unexpected proxy data: %+v", res)
+	if got[0].Host != "203.0.113.1" || got[0].PingMs != 25 {
+		t.Fatalf("tested proxy = %+v, want first proxy with 25ms", got[0])
 	}
+}
 
-	if res.PingMs < 0 {
-		t.Errorf("expected non-negative ping, got %d", res.PingMs)
+func TestTestAndFilterProxiesDoesNotMutateInputOrder(t *testing.T) {
+	raw := []MTProtoProxy{
+		{Host: "203.0.113.1", Port: 443},
+		{Host: "203.0.113.2", Port: 443},
+		{Host: "203.0.113.3", Port: 443},
+	}
+	before := append([]MTProtoProxy(nil), raw...)
+	probe := func(_ context.Context, _ MTProtoProxy) (time.Duration, error) {
+		return time.Millisecond, nil
+	}
+	_ = testAndFilterProxiesWithProbe(context.Background(), raw, probe)
+	for i := range raw {
+		if raw[i] != before[i] {
+			t.Fatalf("input mutated at %d: got %+v want %+v", i, raw[i], before[i])
+		}
+	}
+}
+
+func TestPublicMTProtoProbeRejectsNonPublicTargets(t *testing.T) {
+	t.Parallel()
+	for _, host := range []string{"127.0.0.1", "0.0.0.0", "169.254.169.254", "::1"} {
+		_, err := publicMTProtoProbe(context.Background(), MTProtoProxy{Host: host, Port: 443})
+		if err == nil {
+			t.Fatalf("publicMTProtoProbe(%q) accepted a non-public target", host)
+		}
+		if !errors.Is(err, ErrUnsafeRemoteTarget) {
+			t.Fatalf("publicMTProtoProbe(%q) error = %v, want ErrUnsafeRemoteTarget", host, err)
+		}
+	}
+}
+
+func TestPublicMTProtoProbeRejectsInvalidPortsBeforeNetwork(t *testing.T) {
+	t.Parallel()
+	for _, port := range []int{-1, 0, 65536} {
+		_, err := publicMTProtoProbe(context.Background(), MTProtoProxy{Host: "8.8.8.8", Port: port})
+		if err == nil {
+			t.Fatalf("port %d unexpectedly accepted", port)
+		}
 	}
 }

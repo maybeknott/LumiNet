@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java/com/luminet/android
+
+## Purpose
+Holds LumiNet Android local unit tests for application logic that can execute on the host JVM.
+
+## Contents
+Contains test classes and nested feature-specific packages, including DNS and tunnel behavior coverage.
+
+## Interfaces and dependencies
+Exercises Android application contracts through JVM-compatible code, mocks, and test fixtures configured by Gradle.
+
+## Invariants
+Tests must be deterministic without a real device, avoid leaking shared state between cases, and remain aligned with the production contracts they characterize.

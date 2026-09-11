@@ -7,6 +7,8 @@
 // pasted v2rayN JSON produces an actionable preview instead of a parse
 // error. Protocol mapping follows v2rayN 6.x/7.x ConfigType enum.
 
+import { computeProfileKey } from './profileKey.js';
+
 export interface V2rayNImportItem {
   name: string;
   /** Normalised protocol id (vmess/vless/trojan/shadowsocks/socks/hysteria2/tuic). */
@@ -14,7 +16,9 @@ export interface V2rayNImportItem {
   server: string;
   port: number;
   /** Raw v2rayN configType number (when present). */
-  configType?: number;
+  configType?: number | undefined;
+  /** Content-derived stable profile fingerprint. */
+  profileKey?: string | undefined;
 }
 
 export interface V2rayNImportResult {
@@ -92,12 +96,31 @@ export function parseV2rayNExport(text: string): V2rayNImportResult {
       skipped.push({ index, reason: 'missing address or port' });
       return;
     }
+    let profileKey: string | undefined;
+    try {
+      const pk = computeProfileKey({
+        protocol,
+        host: server,
+        port,
+        uuid: readString(e.id) || undefined,
+        password: readString(e.password) || undefined,
+        network: readString(e.net) || undefined,
+        tls: readString(e.security) || undefined,
+        path: readString(e.path) || undefined,
+        sni: readString(e.sni) || undefined,
+      });
+      profileKey = pk.hash;
+    } catch {
+      // Ignore key computation failure for partial configs
+    }
+
     items.push({
       name: readString(e.remarks) || `${protocol}-${server}`,
       protocol,
       server,
       port,
       configType,
+      profileKey,
     });
   });
 

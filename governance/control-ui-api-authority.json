@@ -1,0 +1,25 @@
+{
+  "schema": "luminet.control-ui-api-authority.v2",
+  "entrypoints": [
+    "src/main.tsx"
+  ],
+  "reachable_source_files": 34,
+  "api_total": 9,
+  "api_reachable": 9,
+  "api_unreachable": 0,
+  "reachable_api": [
+    "src/api/ControlTransport.ts",
+    "src/api/TelemetryService.ts",
+    "src/api/capabilities.ts",
+    "src/api/contracts.ts",
+    "src/api/conversion.ts",
+    "src/api/flows.ts",
+    "src/api/planners.ts",
+    "src/api/qlog.ts",
+    "src/api/recovery.ts"
+  ],
+  "unreachable_api": [],
+  "relocated_reference_root": "labs/control-ui/api-shadow",
+  "relocated_reference_count": 211,
+  "note": "Canonical Control UI API authority contains only modules reachable from src/main.tsx. The 211 unreachable donor/reference modules are retained under labs/control-ui/api-shadow as non-authoritative reference material and must not be imported by production source."
+}

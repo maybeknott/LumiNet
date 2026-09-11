@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/platform/service
+
+## Purpose
+Owns operating-system service integration for installing, controlling, or querying the LumiNet daemon service.
+
+## Contents
+Contains Go service-management abstractions and platform-specific adapters where service managers differ.
+
+## Interfaces and dependencies
+Called by daemon/CLI platform flows and depends on OS service-manager APIs, process identity, permissions, and filesystem configuration.
+
+## Invariants
+Service mutations are idempotent where possible, privilege errors are surfaced, platform-specific behavior remains isolated, and failed operations do not report a state transition that did not occur.

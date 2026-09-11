@@ -3,6 +3,8 @@ package system
 import (
 	"bufio"
 	"encoding/base64"
+
+	"github.com/maybeknott/luminet/internal/foundation/boundedio"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -12,6 +14,11 @@ import (
 	"sync"
 	"time"
 )
+
+// maxLanHTTPLineBytes bounds a single HTTP request/header line read from a LAN
+// peer. Longer lines are rejected so a peer that never terminates a line
+// cannot grow the reader without bound.
+const maxLanHTTPLineBytes = 16 << 10
 
 // LanSettings specifies parameters for sharing proxy access on local network.
 type LanSettings struct {
@@ -301,8 +308,11 @@ func (s *LanProxySharer) socks5Auth(client net.Conn, user, pass string) bool {
 
 func (s *LanProxySharer) handleHTTP(client net.Conn, carrier string, settings LanSettings, hasAuth bool, firstByte byte) {
 	reader := bufio.NewReader(io.MultiReader(strings.NewReader(string(firstByte)), client))
-	reqLine, err := reader.ReadString('\n')
+	reqLine, err := boundedio.ReadLine(reader, maxLanHTTPLineBytes)
 	if err != nil {
+		if errors.Is(err, boundedio.ErrLineTooLong) {
+			_, _ = client.Write([]byte("HTTP/1.1 431 Request Header Fields Too Large\r\nContent-Length: 0\r\n\r\n"))
+		}
 		return
 	}
 	parts := strings.Fields(reqLine)
@@ -318,7 +328,11 @@ func (s *LanProxySharer) handleHTTP(client net.Conn, carrier string, settings La
 	expectedAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(settings.Username+":"+settings.Password))
 
 	for {
-		line, err := reader.ReadString('\n')
+		line, err := boundedio.ReadLine(reader, maxLanHTTPLineBytes)
+		if errors.Is(err, boundedio.ErrLineTooLong) {
+			_, _ = client.Write([]byte("HTTP/1.1 431 Request Header Fields Too Large\r\nContent-Length: 0\r\n\r\n"))
+			return
+		}
 		if err != nil || line == "\r\n" || line == "\n" {
 			break
 		}

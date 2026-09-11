@@ -8,22 +8,34 @@ errors = []
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
-# StartStream is intentionally retained only until the Rust ABI can be changed
-# under Cargo. Any new production Go caller invalidates the zero-consumer proof.
+# The reactive stream-scan surface has been promoted from the Wave-17 stub to a
+# real Cargo-backed capability: streaming.rs implements an async port probe with
+# cancellation and typed callback events, the bridge owns the wire schema, and
+# jobs/runners.go consumes it through the typed StreamScanIntent job contract.
+# Pin the promoted consumer set exactly so the native surface cannot grow
+# undiscovered production callers, and keep the stub classification from
+# silently returning.
+ALLOWED_STARTSTREAM_CONSUMERS = {
+    "src/apps/daemon/internal/native/bridge/streaming.go",
+    "src/apps/daemon/internal/native/bridge/streaming_degraded.go",
+    "src/apps/daemon/internal/workflows/jobs/runners.go",
+}
 go_callers = []
 for path in ROOT.rglob("*.go"):
     rel = path.relative_to(ROOT).as_posix()
-    if rel == "src/apps/daemon/internal/native/bridge/streaming.go" or rel.startswith("labs/"):
+    if rel in ALLOWED_STARTSTREAM_CONSUMERS or rel.startswith("labs/"):
         continue
     text = read(path)
     if re.search(r"\bStartStream\s*\(", text):
         go_callers.append(rel)
 if go_callers:
-    errors.append("dormant StartStream gained production callers: " + ", ".join(sorted(go_callers)))
+    errors.append("StartStream gained consumers outside the pinned bridge/job set: " + ", ".join(sorted(go_callers)))
 
 streaming = read(ROOT / "src/packages/lumicore/src/ffi/streaming.rs")
-if "async fn stream_scan" not in streaming or "// Stub implementation" not in streaming:
-    errors.append("stream_scan classification changed; rerun the Cargo-backed capability review")
+if "async fn stream_scan" not in streaming or "STREAM_EVT_PROBE_RESULT" not in streaming:
+    errors.append("stream_scan lost its promoted real-implementation markers; rerun the Cargo-backed capability review")
+if "// Stub implementation" in streaming:
+    errors.append("stream_scan regressed to the Wave-17 stub classification")
 if "lumicore_stream_start" not in streaming:
     errors.append("stream ABI changed without updating the Wave 17 retirement ledger")
 

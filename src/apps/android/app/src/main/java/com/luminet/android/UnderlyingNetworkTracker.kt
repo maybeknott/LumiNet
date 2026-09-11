@@ -21,8 +21,9 @@ internal class UnderlyingNetworkTracker(
         vpnService.getSystemService(ConnectivityManager::class.java),
 ) {
     private val lock = Any()
+    private val platformLock = Any()
+    private val lifecycle = UnderlayLifecycleGate()
     private val candidates = mutableMapOf<Network, NetworkCapabilities>()
-    private var started = false
     private var appliedHandle = UNAPPLIED_HANDLE
 
     private val request = NetworkRequest.Builder()
@@ -53,7 +54,7 @@ internal class UnderlyingNetworkTracker(
      */
     fun start(): Boolean {
         synchronized(lock) {
-            if (started) return true
+            if (lifecycle.active) return true
         }
 
         val registered = runCatching {
@@ -62,7 +63,8 @@ internal class UnderlyingNetworkTracker(
         if (!registered) return false
 
         synchronized(lock) {
-            started = true
+            lifecycle.start()
+            appliedHandle = UNAPPLIED_HANDLE
         }
 
         // Seed state after registration so an event racing with this snapshot is
@@ -76,10 +78,10 @@ internal class UnderlyingNetworkTracker(
 
     fun stop() {
         val shouldUnregister = synchronized(lock) {
-            if (!started) {
+            if (!lifecycle.active) {
                 false
             } else {
-                started = false
+                lifecycle.stop()
                 candidates.clear()
                 appliedHandle = UNAPPLIED_HANDLE
                 true
@@ -88,8 +90,14 @@ internal class UnderlyingNetworkTracker(
         if (shouldUnregister) {
             runCatching { connectivity.unregisterNetworkCallback(callback) }
         }
-        // null means that LumiNet no longer asserts an underlying network.
-        runCatching { vpnService.setUnderlyingNetworks(null) }
+
+        // Serialize the platform mutation with callback-driven applications. If a
+        // callback was already inside setUnderlyingNetworks(), teardown waits for
+        // it and then clears the assertion. If it was only queued, its generation
+        // check below fails before it can reassert a stale network.
+        synchronized(platformLock) {
+            runCatching { vpnService.setUnderlyingNetworks(null) }
+        }
     }
 
     private fun refresh(network: Network) {
@@ -106,7 +114,7 @@ internal class UnderlyingNetworkTracker(
 
     private fun updateCandidate(network: Network, capabilities: NetworkCapabilities) {
         synchronized(lock) {
-            if (!started) return
+            if (!lifecycle.active) return
             if (isPhysicalInternet(capabilities)) {
                 candidates[network] = NetworkCapabilities(capabilities)
             } else {
@@ -117,30 +125,42 @@ internal class UnderlyingNetworkTracker(
     }
 
     private fun applyBestCandidate() {
-        val selected = synchronized(lock) {
-            if (!started) return
-            chooseBestCandidate(candidates, runCatching { connectivity.activeNetwork }.getOrNull())
+        val snapshot = synchronized(lock) {
+            if (!lifecycle.active) return
+            val selected = chooseBestCandidate(candidates, runCatching { connectivity.activeNetwork }.getOrNull())
+            val selectedHandle = selected?.networkHandle ?: NO_NETWORK_HANDLE
+            if (appliedHandle == selectedHandle) return
+            ApplySnapshot(selected, selectedHandle, lifecycle.generation)
         }
-        val selectedHandle = selected?.networkHandle ?: NO_NETWORK_HANDLE
 
-        val changed = synchronized(lock) {
-            started && appliedHandle != selectedHandle
-        }
-        if (!changed) return
-
-        val applied = runCatching {
-            if (selected == null) {
-                vpnService.setUnderlyingNetworks(null)
-            } else {
-                vpnService.setUnderlyingNetworks(arrayOf(selected))
+        synchronized(platformLock) {
+            val stillCurrent = synchronized(lock) {
+                lifecycle.isCurrent(snapshot.generation) && appliedHandle != snapshot.selectedHandle
             }
-        }.isSuccess
-        if (applied) {
+            if (!stillCurrent) return
+
+            val applied = runCatching {
+                if (snapshot.selected == null) {
+                    vpnService.setUnderlyingNetworks(null)
+                } else {
+                    vpnService.setUnderlyingNetworks(arrayOf(snapshot.selected))
+                }
+            }.isSuccess
+            if (!applied) return
+
             synchronized(lock) {
-                if (started) appliedHandle = selectedHandle
+                if (lifecycle.isCurrent(snapshot.generation)) {
+                    appliedHandle = snapshot.selectedHandle
+                }
             }
         }
     }
+
+    private data class ApplySnapshot(
+        val selected: Network?,
+        val selectedHandle: Long,
+        val generation: Long,
+    )
 
     companion object {
         private const val UNAPPLIED_HANDLE = Long.MIN_VALUE

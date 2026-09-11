@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/foundation/durablefile
+
+## Purpose
+Provides low-level durable file update primitives for daemon components that persist important state.
+
+## Contents
+Contains Go helpers for safe file replacement and related filesystem durability/error handling.
+
+## Interfaces and dependencies
+Used by higher daemon layers that need persistence guarantees and depends only on foundational filesystem/OS facilities.
+
+## Invariants
+Callers must never observe a partially written replacement as committed state; errors are propagated rather than hidden, temporary resources are cleaned up, and existing data is preserved when a replacement cannot complete safely.

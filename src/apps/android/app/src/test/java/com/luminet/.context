@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java/com/luminet
+
+## Purpose
+Scopes host-side Android unit tests to the LumiNet application namespace.
+
+## Contents
+Contains the nested `android` package and feature-specific local tests.
+
+## Interfaces and dependencies
+Compiled in the Android module's local test source set and linked against application code and configured test doubles.
+
+## Invariants
+This directory remains test-only, package paths must match declarations, and tests should isolate external/platform effects behind deterministic doubles.

@@ -3,44 +3,56 @@ package scanner
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 )
 
-func TestDeployWorkerScript(t *testing.T) {
-	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "PUT" {
-			t.Errorf("expected PUT request, got %s", r.Method)
-		}
-		if r.Header.Get("X-Auth-Email") != "user@example.com" {
-			t.Errorf("expected X-Auth-Email user@example.com, got %s", r.Header.Get("X-Auth-Email"))
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true}`))
-	}))
-	defer server.Close()
-
+func TestDeployWorkerScriptRejectsExistingWorker(t *testing.T) {
 	deployer := NewCloudflareDeployer()
-	// Inject mock server URL
-	ctx := context.Background()
-	
-	// Temporarily override url construction by mapping client to mock server
-	deployer.client = server.Client()
+	var putCalls atomic.Int32
+	deployer.client.Transport = scannerRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		switch req.Method {
+		case http.MethodGet:
+			return scannerResponse(http.StatusOK, "existing script"), nil
+		case http.MethodPut:
+			putCalls.Add(1)
+			return scannerResponse(http.StatusNoContent, ""), nil
+		default:
+			t.Fatalf("unexpected method %s", req.Method)
+			return nil, nil
+		}
+	})
 
-	// Direct check
-	url := server.URL
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, nil)
-	if err != nil {
-		t.Fatalf("request creation failed: %v", err)
+	err := deployer.DeployWorkerScript(context.Background(), "user@example.com", "token", "account", "worker", "new script")
+	if err == nil || !strings.Contains(err.Error(), "refusing implicit replacement") {
+		t.Fatalf("DeployWorkerScript() error = %v, want replacement refusal", err)
 	}
-	req.Header.Set("X-Auth-Email", "user@example.com")
-	resp, err := deployer.client.Do(req)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
+	if putCalls.Load() != 0 {
+		t.Fatalf("PUT calls=%d, want 0 for existing Worker", putCalls.Load())
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
+}
+
+func TestDeployWorkerScriptRejectsMismatchedReadback(t *testing.T) {
+	deployer := NewCloudflareDeployer()
+	var getCalls atomic.Int32
+	deployer.client.Transport = scannerRoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		switch req.Method {
+		case http.MethodGet:
+			if getCalls.Add(1) == 1 {
+				return scannerResponse(http.StatusNotFound, "missing"), nil
+			}
+			return scannerResponse(http.StatusOK, "different script"), nil
+		case http.MethodPut:
+			return scannerResponse(http.StatusNoContent, ""), nil
+		default:
+			t.Fatalf("unexpected method %s", req.Method)
+			return nil, nil
+		}
+	})
+
+	err := deployer.DeployWorkerScript(context.Background(), "user@example.com", "token", "account", "worker", "submitted script")
+	if err == nil || !strings.Contains(err.Error(), "readback did not match") {
+		t.Fatalf("DeployWorkerScript() error = %v, want readback mismatch", err)
 	}
 }

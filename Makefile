@@ -56,6 +56,9 @@ test: test-rust test-go test-desktop test-web ## Run native, Go, desktop, and co
 test-tooling: ## Run vendored repository-tooling module tests
 	cd scripts && GOWORK=off GOPROXY=off go test -mod=vendor ./internal/... ./cmd/...
 
+test-lumicore-sdk: ## Run the Python lumicore SDK unit tests (stdlib only)
+	cd "$(ROOT_DIR)/src/packages/lumicore-sdk/python" && PYTHONPATH=. python3 -m unittest discover -s tests
+
 test-rust: ## Run Rust tests
 	cd "$(RUST_DIR)" && cargo test --locked
 
@@ -193,7 +196,7 @@ verify-repo: ## Check repository structure, topology, convergence evidence, and 
 	PYTHONDONTWRITEBYTECODE=1 python3 scripts/checks/check_peer_convergence.py
 	python3 scripts/checks/repo_audit.py
 
-verify-release: test-tooling validate-abi validate-preservation verify-repo audit-dependencies lint-rust test-rust vet-go test-go test-desktop test-web ## Run the canonical release-admission verification suite
+verify-release: test-tooling test-lumicore-sdk validate-abi validate-preservation verify-repo audit-dependencies lint-rust test-rust vet-go test-go test-desktop test-web ## Run the canonical release-admission verification suite
 	@printf '\nRelease admission verification passed.\n'
 
 

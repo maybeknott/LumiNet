@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/platform/security
+
+## Purpose
+Daemon security implementation module.
+
+## Architectural role
+- Daemon dependency band: `platform` (rank 1; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (34): `access_interceptor.go`, `access_interceptor_test.go`, `blocklist_engine.go`, `blocklist_engine_test.go`, `dns_arq_codec.go`, `dns_arq_codec_test.go`, `dns_drop_filter.go`, `dns_drop_filter_test.go`, `dns_poison_filter.go`, `dns_poison_filter_test.go`, `dynamic_ca.go`, `dynamic_ca_test.go` …
+
+## Interfaces and dependencies
+- Go package: `security`.
+- Notable exported surface: `AccessInterceptor`, `AccessRole`, `AccountStatus`, `AuditEntry`, `BlockCategory`, `DecodeArqQuery`, `DecryptIPList`, `DecryptPayload`, `DecryptText`, `DeriveKey` …
+- Daemon-local dependencies: none.
+- Direct daemon callers: `internal/networking/routing`.
+
+## Invariants
+- `platform` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

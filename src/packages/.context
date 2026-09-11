@@ -5,7 +5,7 @@ Shared modules consumed by one or more product hosts.
 
 ## Contents
 - No direct source files; this folder is a namespace/organization node for child modules.
-- Child folders: `contracts/`, `control-ui/`, `lumicore/`.
+- Child folders: `contracts/`, `control-ui/`, `lumicore/`, `lumicore-sdk/`.
 
 ## Interfaces and dependencies
 - See direct files and parent context for the interface consumed by sibling/parent modules.

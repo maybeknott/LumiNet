@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/platform/windows
+
+## Purpose
+Daemon windows implementation module.
+
+## Architectural role
+- Daemon dependency band: `platform` (rank 1; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (4): `system_dns_manager.go`, `system_dns_manager_test.go`, `wfp_redirector.go`, `wfp_redirector_test.go`
+
+## Interfaces and dependencies
+- Go package: `windows`.
+- Notable exported surface: `BuildBatchSetScript`, `CommandExecutor`, `NewSystemDNSManager`, `NewWFPRedirector`, `PowerShellExecutor`, `SystemDNSManager`, `WFPMatchDesc`, `WFPRedirector`, `WFPRule`, `WFPStats`.
+- Daemon-local dependencies: none.
+- Direct daemon callers: none detected.
+
+## Invariants
+- `platform` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

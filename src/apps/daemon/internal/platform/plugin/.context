@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/platform/plugin
+
+## Purpose
+Provides daemon platform integration for plugin lifecycle and host-facing plugin operations.
+
+## Contents
+Contains Go plugin adapters, lifecycle helpers, and platform boundary code used to load, invoke, or supervise supported extensions.
+
+## Interfaces and dependencies
+Consumed by daemon runtime/orchestration and depends on plugin contracts plus operating-system facilities appropriate to the active platform.
+
+## Invariants
+Plugin inputs and capabilities are validated, failures remain isolated from host state, lifecycle ownership is explicit, and privileged/system mutation cannot occur outside approved platform boundaries.

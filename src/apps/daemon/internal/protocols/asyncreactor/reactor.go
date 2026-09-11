@@ -64,28 +64,29 @@ func (r *AsyncReactor) Register(client, target net.Conn) error {
 // RegisterObserved registers a pair with optional flow-observability hooks.
 // The hooks do not own the connections and must not block.
 func (r *AsyncReactor) RegisterObserved(client, target net.Conn, observer Observer) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	pair := &ConnectionPair{Client: client, Target: target, observer: observer}
 
+	r.mu.Lock()
 	r.pairs[client] = pair
 	r.pairs[target] = pair
 
-	// Submit initial read requests (4KB buffer size)
+	// Submit initial read requests while the lifecycle lock prevents a
+	// concurrent Close from releasing the pair mid-registration.
 	buf1 := make([]byte, 4096)
 	buf2 := make([]byte, 4096)
-
 	if err := r.watcher.Read(nil, client, buf1); err != nil {
-		r.freePair(pair)
+		callback := r.freePairLocked(pair)
+		r.mu.Unlock()
+		callObserver(callback)
 		return fmt.Errorf("failed to submit read for client: %w", err)
 	}
-
 	if err := r.watcher.Read(nil, target, buf2); err != nil {
-		r.freePair(pair)
+		callback := r.freePairLocked(pair)
+		r.mu.Unlock()
+		callObserver(callback)
 		return fmt.Errorf("failed to submit read for target: %w", err)
 	}
-
+	r.mu.Unlock()
 	return nil
 }
 
@@ -99,7 +100,6 @@ func (r *AsyncReactor) reactorLoop() {
 		default:
 			results, err := r.watcher.WaitIO()
 			if err != nil {
-				// Watcher closed or stopped
 				return
 			}
 
@@ -111,22 +111,20 @@ func (r *AsyncReactor) reactorLoop() {
 }
 
 func (r *AsyncReactor) handleEvent(res gaio.OpResult) {
+	// Pair membership and Closed are one lifecycle state protected by mu.
 	r.mu.Lock()
 	pair, exists := r.pairs[res.Conn]
-	r.mu.Unlock()
-
 	if !exists || pair.Closed {
-		return
-	}
-
-	if res.Error != nil {
-		r.mu.Lock()
-		r.freePair(pair)
 		r.mu.Unlock()
 		return
 	}
+	r.mu.Unlock()
 
-	// Determine peer connection
+	if res.Error != nil {
+		r.releasePair(pair)
+		return
+	}
+
 	var peer net.Conn
 	if res.Conn == pair.Client {
 		peer = pair.Target
@@ -144,39 +142,37 @@ func (r *AsyncReactor) handleEvent(res gaio.OpResult) {
 			} else if pair.observer.OnTargetToClient != nil {
 				pair.observer.OnTargetToClient(res.Size)
 			}
-			// Submit async write to the peer connection
+
 			writeBuf := make([]byte, res.Size)
 			copy(writeBuf, res.Buffer[:res.Size])
-
 			if err := r.watcher.Write(nil, peer, writeBuf); err != nil {
-				r.mu.Lock()
-				r.freePair(pair)
-				r.mu.Unlock()
+				r.releasePair(pair)
 				return
 			}
 
-			// Submit next read on the same connection immediately to keep the read pump active
 			readBuf := make([]byte, 4096)
 			if err := r.watcher.Read(nil, res.Conn, readBuf); err != nil {
-				r.mu.Lock()
-				r.freePair(pair)
-				r.mu.Unlock()
+				r.releasePair(pair)
 			}
 		} else {
-			// EOF read, tear down connection pair
-			r.mu.Lock()
-			r.freePair(pair)
-			r.mu.Unlock()
+			r.releasePair(pair)
 		}
-
 	case gaio.OpWrite:
-		// Write completed. No further action needed since the read pump is kept active by OpRead.
+		// Write completed. The OpRead path already keeps the read pump active.
 	}
 }
 
-func (r *AsyncReactor) freePair(pair *ConnectionPair) {
+func callObserver(callback func()) {
+	if callback != nil {
+		callback()
+	}
+}
+
+// freePairLocked releases lifecycle-owned pair resources and returns the
+// observer callback for invocation after mu is released. r.mu must be held.
+func (r *AsyncReactor) freePairLocked(pair *ConnectionPair) func() {
 	if pair.Closed {
-		return
+		return nil
 	}
 	pair.Closed = true
 
@@ -187,9 +183,14 @@ func (r *AsyncReactor) freePair(pair *ConnectionPair) {
 	_ = r.watcher.Free(pair.Target)
 	_ = pair.Client.Close()
 	_ = pair.Target.Close()
-	if pair.observer.OnClose != nil {
-		pair.observer.OnClose()
-	}
+	return pair.observer.OnClose
+}
+
+func (r *AsyncReactor) releasePair(pair *ConnectionPair) {
+	r.mu.Lock()
+	callback := r.freePairLocked(pair)
+	r.mu.Unlock()
+	callObserver(callback)
 }
 
 // Close stops the reactor loop and closes all registered connections.
@@ -197,11 +198,17 @@ func (r *AsyncReactor) Close() error {
 	r.cancel()
 	err := r.watcher.Close()
 
+	var callbacks []func()
 	r.mu.Lock()
 	for _, pair := range r.pairs {
-		r.freePair(pair)
+		if callback := r.freePairLocked(pair); callback != nil {
+			callbacks = append(callbacks, callback)
+		}
 	}
 	r.mu.Unlock()
+	for _, callback := range callbacks {
+		callObserver(callback)
+	}
 
 	r.wg.Wait()
 	return err

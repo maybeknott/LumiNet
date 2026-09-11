@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test
+
+## Purpose
+Defines the local JVM unit-test source set for the LumiNet Android application module.
+
+## Contents
+Contains the Java/Kotlin package hierarchy and host-side tests that do not require an Android device runtime.
+
+## Interfaces and dependencies
+Discovered by Gradle's unit-test source set and compiled against application code plus configured test libraries/mocks.
+
+## Invariants
+Code here is test-only, must not ship in application artifacts, and tests should avoid undeclared device/environment dependencies so they remain reproducible.

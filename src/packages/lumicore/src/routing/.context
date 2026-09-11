@@ -4,7 +4,7 @@
 Native routing primitives.
 
 ## Contents
-- Direct files (3): `mmap_config.rs`, `mod.rs`, `trie.rs`
+- Direct files (33): `adaptive_outbound_coordinator.rs`, `async_rule_evaluator.rs`, `autonomous_routing_coordinator.rs`, `autoproxy_ruleset_matcher.rs`, `canonical_blacklist_engine.rs`, `composite_rule_compiler.rs`, `core_context_builder.rs`, `dynamic_gateway_updater.rs`, `enhanced_geoip_lookup.rs`, `geospatial_polygon_router.rs`, `intelligent_traffic_filter.rs`, `mesh_wireguard_coordinator.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

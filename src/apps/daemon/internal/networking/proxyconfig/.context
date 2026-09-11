@@ -8,12 +8,12 @@ Canonical per-node proxy configuration types and URI parsers. Other modules cons
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (25): `core_compat.go`, `direct.go`, `finalmask.go`, `hysteria2_fields.go`, `parser_anytls.go`, `parser_contract_test.go`, `parser_dnstt.go`, `parser_hy2.go`, `parser_juicity.go`, `parser_kcp.go`, `parser_naive.go`, `parser_nipo.go` …
+- Direct files (86): `autonomous_ingest_pipeline.go`, `autonomous_ingest_pipeline_test.go`, `cdn_dial_overrides.go`, `clash_synthesizer.go`, `clash_synthesizer_test.go`, `community_feed_parser.go`, `community_feed_parser_test.go`, `core_compat.go`, `direct.go`, `edge_panel_config.go`, `edge_panel_config_test.go`, `finalmask.go` …
 
 ## Interfaces and dependencies
 - Go package: `proxyconfig`.
-- Notable exported surface: `BuildXrayHysteria2Settings`, `BuildXrayTLSSettings`, `BuildXrayXHTTPSettings`, `CanonicalXHTTPTransport`, `DecodeFinalMask`, `EvaluateExternalCoreCompatibility`, `ExternalCoreCompatibility`, `ExtractRealityParams`, `IsSuspicious`, `MaxFinalMaskBytes` …
-- Daemon-local dependencies: none.
+- Notable exported surface: `ActiveGatewayEndpoint`, `AggregatedNode`, `AllDropReasons`, `AutomatedTlsServerConfigurator`, `AutonomousIngestPipeline`, `BalancedPortCapper`, `BuildCDNDialOverrides`, `BuildEdgeUrlTestGroup`, `BuildProxyChain`, `BuildSpeedtestConfig` …
+- Daemon-local dependencies: `internal/networking/diagnostics`, `internal/networking/routing`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/analysis/diagnostics`, `internal/integrations/sub`, `internal/runtime/proxy`, `internal/workflows/jobs`.
 
 ## Invariants

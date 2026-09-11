@@ -1,0 +1,13 @@
+# src/packages/control-ui/tests/e2e
+
+## Purpose
+Provides browser-level end-to-end coverage for critical Control UI user journeys and remediation regressions.
+
+## Contents
+Contains Playwright specifications and supporting fixtures/routes that exercise rendered UI behavior through browser interactions.
+
+## Interfaces and dependencies
+Runs through Playwright against the Control UI and controlled HTTP/API route mocks or test services.
+
+## Invariants
+Mocks must match the real request paths/methods they characterize, tests must await user-observable readiness rather than arbitrary timing, each case isolates browser/network state, and production security behavior is not weakened to satisfy tests.

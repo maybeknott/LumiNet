@@ -9,19 +9,30 @@ import (
 	"testing"
 )
 
-func TestProvisionConfigValidation(t *testing.T) {
-	vpsCfg := VpsConfig{
-		IP:               "127.0.0.1",
-		SSHUser:          "root",
-		SSHPassword:      "password123",
-		SSHHostKeySHA256: "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-		Domain:           "example.com",
-		CFToken:          "cloudflare-token",
-		CFAccountID:      "cloudflare-account-id",
+func validRuntimeSupplyChainConfig() VpsConfig {
+	return VpsConfig{
+		ThreeXUIImage: "ghcr.io/mhsanaei/3x-ui@sha256:" + strings.Repeat("a", 64),
+		PostgresImage: "postgres@sha256:" + strings.Repeat("b", 64),
+		AlpineImage:   "alpine@sha256:" + strings.Repeat("c", 64),
+		TorAPKVersion: "0.4.8.14-r0",
 	}
+}
+
+func TestProvisionConfigValidation(t *testing.T) {
+	vpsCfg := validRuntimeSupplyChainConfig()
+	vpsCfg.IP = "127.0.0.1"
+	vpsCfg.SSHUser = "root"
+	vpsCfg.SSHPassword = "password123"
+	vpsCfg.SSHHostKeySHA256 = "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	vpsCfg.Domain = "example.com"
+	vpsCfg.CFToken = "cloudflare-token"
+	vpsCfg.CFAccountID = "cloudflare-account-id"
 
 	if vpsCfg.IP != "127.0.0.1" {
 		t.Errorf("Expected IP 127.0.0.1, got %s", vpsCfg.IP)
+	}
+	if err := vpsCfg.validateRuntimeSupplyChain(); err != nil {
+		t.Fatalf("valid pinned supply chain rejected: %v", err)
 	}
 
 	edgeCfg := EdgeConfig{
@@ -49,6 +60,32 @@ func TestProvisionConfigValidation(t *testing.T) {
 	}
 	if edgeVlessCfg.UUID != "9de78a2e-4b7b-4171-ba47-19ad0d7f9503" {
 		t.Errorf("Expected UUID 9de78a2e-4b7b-4171-ba47-19ad0d7f9503, got %s", edgeVlessCfg.UUID)
+	}
+}
+
+func TestRuntimeSupplyChainRejectsMutableInputs(t *testing.T) {
+	cfg := validRuntimeSupplyChainConfig()
+	cfg.ThreeXUIImage = "ghcr.io/mhsanaei/3x-ui:latest"
+	if err := cfg.validateRuntimeSupplyChain(); err == nil || !strings.Contains(err.Error(), "three_xui_image") {
+		t.Fatalf("mutable 3x-ui image should fail closed, got %v", err)
+	}
+
+	cfg = validRuntimeSupplyChainConfig()
+	cfg.PostgresImage = "postgres:17"
+	if err := cfg.validateRuntimeSupplyChain(); err == nil || !strings.Contains(err.Error(), "postgres_image") {
+		t.Fatalf("mutable postgres image should fail closed, got %v", err)
+	}
+
+	cfg = validRuntimeSupplyChainConfig()
+	cfg.AlpineImage = "alpine:3.22"
+	if err := cfg.validateRuntimeSupplyChain(); err == nil || !strings.Contains(err.Error(), "alpine_image") {
+		t.Fatalf("mutable alpine image should fail closed, got %v", err)
+	}
+
+	cfg = validRuntimeSupplyChainConfig()
+	cfg.TorAPKVersion = "latest"
+	if err := cfg.validateRuntimeSupplyChain(); err == nil || !strings.Contains(err.Error(), "tor_apk_version") {
+		t.Fatalf("unpinned Tor package should fail closed, got %v", err)
 	}
 }
 
@@ -169,12 +206,10 @@ func TestCFClientSSLAndCertificate(t *testing.T) {
 				if req.URL.String() != expectedURL {
 					t.Errorf("Expected URL %s, got %s", expectedURL, req.URL.String())
 				}
-				authHeader := req.Header.Get("Authorization")
-				if authHeader != "Bearer mock-token" {
+				if authHeader := req.Header.Get("Authorization"); authHeader != "Bearer mock-token" {
 					t.Errorf("Expected Authorization header 'Bearer mock-token', got '%s'", authHeader)
 				}
-				contentType := req.Header.Get("Content-Type")
-				if contentType != "application/json" {
+				if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 					t.Errorf("Expected Content-Type 'application/json', got '%s'", contentType)
 				}
 
@@ -186,8 +221,7 @@ func TestCFClientSSLAndCertificate(t *testing.T) {
 			},
 		}
 
-		err := client.SetSSLModeStrict(context.Background(), "zone-123")
-		if err != nil {
+		if err := client.SetSSLModeStrict(context.Background(), "zone-123"); err != nil {
 			t.Fatalf("SetSSLModeStrict failed: %v", err)
 		}
 		if !called {
@@ -237,7 +271,6 @@ func TestCFClientSSLAndCertificate(t *testing.T) {
 }
 
 func TestProvisionVPS_SetSSLModeStrict(t *testing.T) {
-	// Backup original DefaultTransport
 	origTransport := http.DefaultTransport
 	defer func() {
 		http.DefaultTransport = origTransport
@@ -251,45 +284,25 @@ func TestProvisionVPS_SetSSLModeStrict(t *testing.T) {
 		roundTripFunc: func(req *http.Request) (*http.Response, error) {
 			urlStr := req.URL.String()
 
-			// 1. GetZoneID
 			if req.Method == "GET" && strings.Contains(urlStr, "/client/v4/zones?name=") {
 				zoneIDCall = true
 				resp := `{"success":true,"result":[{"id":"zone-123"}]}`
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(resp)),
-				}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 			}
-
-			// 2. Search existing record
 			if req.Method == "GET" && strings.Contains(urlStr, "/dns_records?type=A") {
-				resp := `{"success":true,"result":[]}` // empty result -> will POST/create
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(resp)),
-				}, nil
+				resp := `{"success":true,"result":[]}`
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 			}
-
-			// 3. Upsert (Create)
 			if req.Method == "POST" && strings.Contains(urlStr, "/dns_records") {
 				upsertCall = true
 				resp := `{"success":true,"result":{"id":"rec-456"}}`
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(resp)),
-				}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 			}
-
-			// 4. SetSSLModeStrict
 			if req.Method == "PATCH" && strings.Contains(urlStr, "/settings/ssl") {
 				sslModeCall = true
 				resp := `{"success":true,"result":{"id":"ssl","value":"strict"}}`
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(resp)),
-				}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 			}
-
 			return &http.Response{
 				StatusCode: http.StatusNotFound,
 				Body:       io.NopCloser(strings.NewReader(`{"success":false}`)),
@@ -298,27 +311,22 @@ func TestProvisionVPS_SetSSLModeStrict(t *testing.T) {
 	}
 
 	logger := NewProvisionLogger()
-	cfg := VpsConfig{
-		IP:               "127.0.0.1",
-		SSHUser:          "root",
-		SSHPassword:      "password123",
-		SSHHostKeySHA256: "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-		Domain:           "example.com",
-		CFToken:          "cloudflare-token",
-		CFAccountID:      "cloudflare-account-id",
-	}
+	cfg := validRuntimeSupplyChainConfig()
+	cfg.IP = "127.0.0.1"
+	cfg.SSHUser = "root"
+	cfg.SSHPassword = "password123"
+	cfg.SSHHostKeySHA256 = "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	cfg.Domain = "example.com"
+	cfg.CFToken = "cloudflare-token"
+	cfg.CFAccountID = "cloudflare-account-id"
 
 	err := ProvisionVPS(context.Background(), cfg, logger)
 	if err == nil {
 		t.Fatal("Expected ProvisionVPS to return SSH connection failure, but got no error")
 	}
-
-	// Verify the error is indeed about SSH dialing (so execution reached the SSH phase)
 	if !strings.Contains(err.Error(), "failed to dial SSH") {
 		t.Errorf("Expected SSH connection failure error, got: %v", err)
 	}
-
-	// Verify that the Cloudflare DNS and hardening endpoints were called successfully
 	if !zoneIDCall {
 		t.Error("Cloudflare GetZoneID was not called")
 	}
@@ -328,8 +336,6 @@ func TestProvisionVPS_SetSSLModeStrict(t *testing.T) {
 	if !sslModeCall {
 		t.Error("Cloudflare SetSSLModeStrict was not called")
 	}
-
-	// Verify logger outputs
 	logs := logger.GetLogs()
 	if !strings.Contains(logs, "Cloudflare SSL: Strict SSL mode enabled successfully!") {
 		t.Errorf("Expected log containing Strict SSL confirmation, got: %s", logs)

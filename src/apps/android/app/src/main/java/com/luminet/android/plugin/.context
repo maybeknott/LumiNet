@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/plugin
+
+## Purpose
+Provides Android application integration for LumiNet plugin or extension behavior.
+
+## Contents
+Contains Kotlin/Java plugin-facing models, adapters, and lifecycle helpers used by the Android host application.
+
+## Interfaces and dependencies
+Bridges Android lifecycle/platform facilities with the application's plugin contracts and any shared configuration interfaces.
+
+## Invariants
+Plugin inputs must be validated at the boundary, plugin failures must remain isolated from host lifecycle state, and privileged/platform operations require explicit ownership.

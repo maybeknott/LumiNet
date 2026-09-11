@@ -4,7 +4,7 @@
 OS-specific native platform abstractions.
 
 ## Contents
-- Direct files (5): `android.rs`, `device_spoof.rs`, `hotkeys.rs`, `mod.rs`, `syscall_evasion.rs`
+- Direct files (21): `android.rs`, `autonomous_global_proxy_supervisor.rs`, `connection_lineage.rs`, `core_engine_supervisor.rs`, `desktop_client_manager.rs`, `device_spoof.rs`, `embedded_controller.rs`, `hotkeys.rs`, `job_object_supervisor.rs`, `mobile_engine_provider.rs`, `mobile_tunnel_supervisor.rs`, `mod.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

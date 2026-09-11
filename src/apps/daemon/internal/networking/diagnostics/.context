@@ -1,0 +1,24 @@
+# src/apps/daemon/internal/networking/diagnostics
+
+## Purpose
+Network diagnosis and analysis owner: censorship diagnosis, clean-IP probing, IP posture, CDN/anti-bot inspection, TLS/SNI/HTTP/throughput checks, and result interpretation.
+
+## Architectural role
+- Daemon dependency band: `networking` (rank 2; lower rank = deeper implementation).
+- Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
+
+## Contents
+- Direct files (30): `adaptive_mtu.go`, `adaptive_mtu_test.go`, `censorship_prober.go`, `censorship_prober_test.go`, `dns_battery.go`, `dns_battery_test.go`, `doh_fallback.go`, `doh_fallback_test.go`, `dynamic_proxy_validator.go`, `dynamic_proxy_validator_test.go`, `edge_gateway_health.go`, `edge_gateway_health_test.go` …
+
+## Interfaces and dependencies
+- Go package: `diagnostics`.
+- Notable exported surface: `AdaptiveMtuDiscovery`, `BatteryMeta`, `BatteryResult`, `CensorshipAnomaly`, `CensorshipProber`, `CensorshipSignature`, `DNSSECTestDomain`, `DNSSECTestResult`, `DNSScanner`, `DiversityMetrics` …
+- Daemon-local dependencies: none.
+- Direct daemon callers: `internal/networking/proxyconfig`, `internal/networking/routing`.
+
+## Invariants
+- `networking` code must not import a higher-rank daemon band.
+
+## Navigation
+- Read this file first, then direct child `.context` files before editing a deeper folder.
+- Update this context when ownership, supported interfaces, or child-folder meaning changes; do not use it as a changelog.

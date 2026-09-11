@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/integrations/ptydriver
+
+## Purpose
+Provides pseudo-terminal driver integration used by daemon features that supervise interactive or terminal-oriented subprocesses.
+
+## Contents
+Contains Go adapters around PTY/process lifecycle operations and platform-specific implementation details where required.
+
+## Interfaces and dependencies
+Consumed by daemon integration/workflow code and depends on process, terminal, and operating-system facilities.
+
+## Invariants
+Started processes and PTY handles have explicit ownership, cancellation/close releases resources, I/O errors remain observable, and platform-specific behavior stays behind this integration boundary.

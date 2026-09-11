@@ -1,0 +1,13 @@
+# src/apps/android/app/src/androidTest/java/com/luminet
+
+## Purpose
+Scopes Android instrumentation tests to the LumiNet application namespace.
+
+## Contents
+Contains the nested `android` instrumentation-test package and related device-facing test code.
+
+## Interfaces and dependencies
+Compiled by the Android test source set and linked to application/runtime contracts through test dependencies.
+
+## Invariants
+Namespace structure must match package declarations; this tree is test-only and may exercise production APIs but must not provide production replacements.

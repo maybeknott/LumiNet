@@ -1,0 +1,13 @@
+# src/packages/control-ui/src/features/connections
+
+## Purpose
+Owns Control UI behavior for observing and mutating active connection/flow state.
+
+## Contents
+Contains connection models, hooks/mutations, and feature UI logic including refresh and owner-directed flow teardown.
+
+## Interfaces and dependencies
+Uses the canonical control transport/API surface and is consumed by connection-oriented pages/components.
+
+## Invariants
+Destructive flow actions target the intended encoded flow identifier, successful mutations trigger consistent refresh, request failures remain visible to callers/UI, and stale asynchronous responses must not overwrite newer state.

@@ -17,40 +17,32 @@ impl UringTcpEngine {
         local: TcpStream,
         remote: TcpStream,
     ) -> Result<(), std::io::Error> {
-        let (local_r, local_w) = (local, local.clone());
-        let (remote_r, remote_w) = (remote, remote.clone());
-
-        let t1 = tokio::spawn(async move {
-            let mut buf = vec![0u8; 16384]; // 16KB zero-copy buffer
-            loop {
-                let (res, b) = local_r.read(buf).await;
-                let n = res?;
-                if n == 0 {
-                    break;
-                }
-                let (res_w, _) = remote_w.write_all(b[..n].to_vec()).await;
-                res_w?;
-                buf = b;
-            }
-            Ok::<(), std::io::Error>(())
-        });
-
-        let t2 = tokio::spawn(async move {
+        async fn copy_direction(
+            source: &TcpStream,
+            destination: &TcpStream,
+        ) -> Result<(), std::io::Error> {
             let mut buf = vec![0u8; 16384];
             loop {
-                let (res, b) = remote_r.read(buf).await;
-                let n = res?;
+                let (read_result, returned_buf) = source.read(buf).await;
+                let n = read_result?;
                 if n == 0 {
-                    break;
+                    return Ok(());
                 }
-                let (res_w, _) = local_w.write_all(b[..n].to_vec()).await;
-                res_w?;
-                buf = b;
-            }
-            Ok::<(), std::io::Error>(())
-        });
 
-        let _ = tokio::try_join!(t1, t2);
+                let outbound = returned_buf[..n].to_vec();
+                let (write_result, _outbound) = destination.write_all(outbound).await;
+                write_result?;
+                buf = returned_buf;
+            }
+        }
+
+        // tokio-uring TcpStream is intentionally not clonable. Drive both
+        // borrowed directions concurrently in the same io_uring task rather
+        // than spawning ownership-duplicating Tokio tasks.
+        tokio::try_join!(
+            copy_direction(&local, &remote),
+            copy_direction(&remote, &local),
+        )?;
         Ok(())
     }
 }

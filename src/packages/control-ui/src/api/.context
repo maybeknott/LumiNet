@@ -4,7 +4,7 @@
 Browser-side daemon API/WebSocket clients and request types.
 
 ## Contents
-- Direct files (9): `ControlTransport.ts`, `TelemetryService.ts`, `capabilities.ts`, `contracts.ts`, `conversion.ts`, `flows.ts`, `planners.ts`, `qlog.ts`, `recovery.ts`
+- Direct files (216): `ControlTransport.ts`, `TelemetryService.ts`, `access_interceptor.ts`, `adaptive_mtu.ts`, `adaptive_outbound_coordinator.ts`, `adaptive_protocol.ts`, `adaptive_strategy_racer.ts`, `amnezia_obfs_parameters.ts`, `async_rule_evaluator.ts`, `autonomous_evasion.ts`, `autonomous_global_proxy_supervisor.ts`, `autonomous_ingest_pipeline.ts` …
 
 ## Interfaces and dependencies
 - React/TypeScript source; imports flow through Vite/TypeScript module resolution and daemon calls go through the browser API adapter.

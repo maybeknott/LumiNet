@@ -1,0 +1,13 @@
+# src/packages/control-ui/src/locales
+
+## Purpose
+Owns Control UI localization resources and locale organization used to present translated user-facing copy.
+
+## Contents
+Contains locale data and seed/reference translation material organized for the frontend localization pipeline.
+
+## Interfaces and dependencies
+Consumed by the Control UI internationalization layer and build tooling; keys correspond to user-facing strings referenced by application code.
+
+## Invariants
+Locale keys remain structurally compatible across supported languages, placeholders are preserved exactly, encoding is UTF-8, and seed/reference data does not silently override the canonical runtime locale source.

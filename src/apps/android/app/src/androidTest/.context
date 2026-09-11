@@ -1,0 +1,13 @@
+# src/apps/android/app/src/androidTest
+
+## Purpose
+Defines the Android instrumentation-test source set used to exercise application behavior on an Android runtime or emulator.
+
+## Contents
+Contains the Java/Kotlin package hierarchy and device-facing integration tests beneath this source set.
+
+## Interfaces and dependencies
+Discovered by Gradle and the Android test runner; tests may depend on the app-under-test and Android test libraries.
+
+## Invariants
+Code here is test-only, must not be packaged as production application logic, and should keep device/emulator side effects isolated and reproducible.

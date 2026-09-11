@@ -1,0 +1,13 @@
+# src/packages/control-ui/src/features
+
+## Purpose
+Groups user-facing Control UI behavior by product feature rather than by low-level rendering primitive.
+
+## Contents
+Contains feature modules such as connections and operations, with their hooks, state coordination, and feature-specific components.
+
+## Interfaces and dependencies
+Feature modules consume the canonical API/transport and shared UI contracts and are composed by application pages/routes.
+
+## Invariants
+Network/side-effect ownership stays in feature hooks or service boundaries, UI state represents loading/error/empty states explicitly, and feature modules do not create competing API authorities.

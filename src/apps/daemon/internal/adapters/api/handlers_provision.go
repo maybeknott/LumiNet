@@ -17,6 +17,10 @@ type VpsProvisionRequest struct {
 	Domain           string `json:"domain"`
 	CFToken          string `json:"cf_token"`
 	CFAccountID      string `json:"cf_account_id"`
+	ThreeXUIImage    string `json:"three_xui_image" binding:"required"`
+	PostgresImage    string `json:"postgres_image" binding:"required"`
+	AlpineImage      string `json:"alpine_image" binding:"required"`
+	TorAPKVersion    string `json:"tor_apk_version" binding:"required"`
 }
 
 type EdgeDeployRequest struct {
@@ -39,7 +43,12 @@ func (s *Server) StartVpsProvision(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cfg := provision.VpsConfig{IP: req.IP, SSHUser: req.SSHUser, SSHPassword: req.SSHPassword, SSHKey: req.SSHKey, SSHHostKeySHA256: req.SSHHostKeySHA256, Domain: req.Domain, CFToken: req.CFToken, CFAccountID: req.CFAccountID}
+	cfg := provision.VpsConfig{
+		IP: req.IP, SSHUser: req.SSHUser, SSHPassword: req.SSHPassword, SSHKey: req.SSHKey,
+		SSHHostKeySHA256: req.SSHHostKeySHA256, Domain: req.Domain, CFToken: req.CFToken,
+		CFAccountID: req.CFAccountID, ThreeXUIImage: req.ThreeXUIImage,
+		PostgresImage: req.PostgresImage, AlpineImage: req.AlpineImage, TorAPKVersion: req.TorAPKVersion,
+	}
 	jobID, err := s.createAndStartJob(jobs.VpsProvisionIntent{Config: cfg})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -82,11 +91,14 @@ func (s *Server) StartEdgeDeploy(c *gin.Context) {
 }
 
 type VLESSDevcontainerRequest struct {
-	UUID        string `json:"uuid" binding:"required"`
-	XrayVersion string `json:"xray_version" binding:"required"`
-	Port        int    `json:"port"`
-	Path        string `json:"path"`
-	Mode        string `json:"mode"`
+	UUID            string `json:"uuid" binding:"required"`
+	XrayVersion     string `json:"xray_version" binding:"required"`
+	BaseImage       string `json:"base_image" binding:"required"`
+	XraySHA256AMD64 string `json:"xray_sha256_amd64" binding:"required"`
+	XraySHA256ARM64 string `json:"xray_sha256_arm64" binding:"required"`
+	Port            int    `json:"port"`
+	Path            string `json:"path"`
+	Mode            string `json:"mode"`
 }
 
 // GenerateVLESSDevcontainer handles a read-only deployment-template request.
@@ -99,7 +111,9 @@ func (s *Server) GenerateVLESSDevcontainer(c *gin.Context) {
 		return
 	}
 	bundle, err := provision.GenerateVLESSDevcontainer(provision.VLESSDevcontainerSpec{
-		UUID: req.UUID, XrayVersion: req.XrayVersion, Port: req.Port, Path: req.Path, Mode: req.Mode,
+		UUID: req.UUID, XrayVersion: req.XrayVersion, BaseImage: req.BaseImage,
+		XraySHA256AMD64: req.XraySHA256AMD64, XraySHA256ARM64: req.XraySHA256ARM64,
+		Port: req.Port, Path: req.Path, Mode: req.Mode,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

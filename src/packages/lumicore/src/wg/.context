@@ -4,7 +4,7 @@
 WireGuard probing/auditing primitives.
 
 ## Contents
-- Direct files (2): `mod.rs`, `prober.rs`
+- Direct files (7): `adaptive_mtu_discovery.rs`, `mod.rs`, `multihop_relay_chain.rs`, `peer_acl_matrix.rs`, `prober.rs`, `static_cidr_pool.rs`, `wireguard_peer_allocator.rs`
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

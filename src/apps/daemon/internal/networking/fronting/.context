@@ -1,0 +1,13 @@
+# src/apps/daemon/internal/networking/fronting
+
+## Purpose
+Implements domain/fronting-oriented daemon networking behavior used by supported transport and evasion paths.
+
+## Contents
+Contains Go configuration, dialing, and protocol helpers for fronting-capable connections.
+
+## Interfaces and dependencies
+Called by networking/routing orchestration and depends on HTTP/TLS/socket primitives and validated transport configuration.
+
+## Invariants
+Fronting targets and outbound destinations are validated before use, TLS/security policy is not silently weakened, cancellation reaches in-flight I/O, and failed setup releases all connection resources.

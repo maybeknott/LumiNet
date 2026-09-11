@@ -8,11 +8,11 @@ Daemon configuration schemas, defaults, templates, and config normalization; con
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (10): `atomic_file.go`, `atomic_file_test.go`, `config.go`, `config_secret_refs_test.go`, `defaults.go`, `quarantine.go`, `quarantine_test.go`, `revision_test.go`, `tpm_lifecycle.go`, `tpm_lifecycle_test.go`
+- Direct files (14): `atomic_file.go`, `atomic_file_test.go`, `config.go`, `config_secret_refs_test.go`, `defaults.go`, `quarantine.go`, `quarantine_test.go`, `randmap_egress.go`, `randmap_egress_test.go`, `revision_test.go`, `tpm_lifecycle.go`, `tpm_lifecycle_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `config`.
-- Notable exported surface: `CaptchaSolverConfig`, `Config`, `DDNSConfig`, `DecoyTrafficConfig`, `DefaultConfig`, `DefaultDBPath`, `DefaultLogLevel`, `DefaultPluginsDir`, `DefaultServerAddr`, `ErrConfigNotFound` …
+- Notable exported surface: `AppendError`, `CaptchaSolverConfig`, `Config`, `DDNSConfig`, `DecoyTrafficConfig`, `DefaultConfig`, `DefaultDBPath`, `DefaultLogLevel`, `DefaultPluginsDir`, `DefaultServerAddr` …
 - Daemon-local dependencies: `internal/foundation/crypto`, `internal/foundation/secrets`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`, `internal/runtime/proxy`.
 

@@ -6,9 +6,34 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
+
+// checkHostRequestIDPattern restricts the opaque request ID returned by the
+// Check-Host API before it is interpolated into a polling URL. IDs that do
+// not match are rejected rather than passed through to URL construction.
+var checkHostRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
+
+// checkHostBodyLimit caps each Check-Host response body read so a hostile or
+// misbehaving upstream cannot exhaust daemon memory.
+const checkHostBodyLimit = 1 << 20 // 1 MiB
+
+// readCappedBody reads an upstream Check-Host response bounded to
+// checkHostBodyLimit bytes, rejecting bodies that exceed the cap instead of
+// silently truncating them.
+func readCappedBody(r io.Reader) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, checkHostBodyLimit+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > checkHostBodyLimit {
+		return nil, fmt.Errorf("check-host response exceeds %d bytes", checkHostBodyLimit)
+	}
+	return body, nil
+}
 
 // CanonicalIranNodes contains the default Check-Host edge nodes located inside Iran.
 var CanonicalIranNodes = []string{
@@ -67,18 +92,27 @@ func BuildCheckHostURL(target, method string, nodes []string) (string, error) {
 		nodes = CanonicalIranNodes
 	}
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("https://check-host.net/check-%s?host=%s", method, target))
-	for _, n := range nodes {
-		sb.WriteString("&node=")
-		sb.WriteString(strings.TrimSpace(n))
+	u, err := url.Parse("https://check-host.net/check-" + method)
+	if err != nil {
+		return "", fmt.Errorf("build check-host URL: %w", err)
 	}
-	return sb.String(), nil
+	q := u.Query()
+	q.Set("host", target)
+	for _, n := range nodes {
+		q.Add("node", strings.TrimSpace(n))
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
 
 // BuildResultURL constructs the polling URL for a pending check request ID.
-func BuildResultURL(requestID string) string {
-	return fmt.Sprintf("https://check-host.net/check-result/%s", requestID)
+// It rejects IDs that do not match the opaque token grammar rather than
+// interpolating arbitrary upstream-controlled text into the URL.
+func BuildResultURL(requestID string) (string, error) {
+	if !checkHostRequestIDPattern.MatchString(requestID) {
+		return "", fmt.Errorf("check-host returned invalid request_id %q", requestID)
+	}
+	return "https://check-host.net/check-result/" + requestID, nil
 }
 
 // ParseInitiateResponse parses the JSON returned from check-host initiation.
@@ -285,19 +319,25 @@ func ExecuteCheckHostProbe(ctx context.Context, client *http.Client, target, met
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, initURL, nil)
+	// Bound every network round-trip regardless of the caller-supplied
+	// client's own timeout configuration; a zero-timeout client must not be
+	// able to hang the probe indefinitely.
+	initCtx, initCancel := context.WithTimeout(ctx, 10*time.Second)
+	req, err := http.NewRequestWithContext(initCtx, http.MethodGet, initURL, nil)
 	if err != nil {
+		initCancel()
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
 	if err != nil {
+		initCancel()
 		return nil, fmt.Errorf("check-host initiate failed: %w", err)
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	body, err := readCappedBody(resp.Body)
+	resp.Body.Close()
+	initCancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read initiate body: %w", err)
 	}
@@ -307,7 +347,10 @@ func ExecuteCheckHostProbe(ctx context.Context, client *http.Client, target, met
 		return nil, err
 	}
 
-	resultURL := BuildResultURL(reqID)
+	resultURL, err := BuildResultURL(reqID)
+	if err != nil {
+		return nil, err
+	}
 	if maxPollSeconds <= 0 {
 		maxPollSeconds = 30
 	}
@@ -324,18 +367,22 @@ func ExecuteCheckHostProbe(ctx context.Context, client *http.Client, target, met
 		case <-timeoutChan:
 			return nil, fmt.Errorf("timed out waiting for check-host results after %d seconds", maxPollSeconds)
 		case <-ticker.C:
-			pollReq, err := http.NewRequestWithContext(ctx, http.MethodGet, resultURL, nil)
+			pollCtx, pollCancel := context.WithTimeout(ctx, 10*time.Second)
+			pollReq, err := http.NewRequestWithContext(pollCtx, http.MethodGet, resultURL, nil)
 			if err != nil {
+				pollCancel()
 				continue
 			}
 			pollReq.Header.Set("Accept", "application/json")
 
 			pollResp, err := client.Do(pollReq)
 			if err != nil {
+				pollCancel()
 				continue
 			}
-			pollBody, err := io.ReadAll(pollResp.Body)
+			pollBody, err := readCappedBody(pollResp.Body)
 			pollResp.Body.Close()
+			pollCancel()
 			if err != nil {
 				continue
 			}

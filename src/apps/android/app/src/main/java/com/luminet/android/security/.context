@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/security
+
+## Purpose
+Owns Android-specific security helpers and policy integration for the LumiNet application.
+
+## Contents
+Contains Kotlin/Java security utilities, validation/policy adapters, and platform-facing protection logic.
+
+## Interfaces and dependencies
+Used by Android application components that cross trust, credential, storage, or platform-security boundaries.
+
+## Invariants
+Security decisions fail closed, secrets are not persisted or logged outside approved stores, and untrusted inputs are validated before privileged or network-sensitive use.

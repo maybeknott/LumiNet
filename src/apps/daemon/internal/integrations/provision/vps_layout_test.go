@@ -43,8 +43,8 @@ func TestManagedLayoutScriptOrdersOwnershipBeforeRollbackAndUsesAtomicGeneration
 }
 
 func TestManagedLayoutScriptRunsAndRollsBackGeneration(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping bash layout execution on Windows")
+	if runtime.GOOS != "linux" {
+		t.Skip("managed VPS transaction targets Linux hosts and uses GNU/Linux command semantics")
 	}
 	root := filepath.Join(t.TempDir(), "managed")
 	if err := os.MkdirAll(filepath.Join(root, "db"), 0o700); err != nil {
@@ -117,8 +117,8 @@ exit 0
 }
 
 func TestManagedLayoutScriptRefusesUnmanagedDirectoryBeforeMutation(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping bash layout execution on Windows")
+	if runtime.GOOS != "linux" {
+		t.Skip("managed VPS transaction targets Linux hosts and uses GNU/Linux command semantics")
 	}
 	root := filepath.Join(t.TempDir(), "unmanaged")
 	if err := os.MkdirAll(root, 0o700); err != nil {

@@ -1,0 +1,13 @@
+# src/packages/control-ui/src/locales/seed
+
+## Purpose
+Preserves seed/reference localization resources used to bootstrap or compare Control UI translations.
+
+## Contents
+Contains locale seed files retained for compatibility, generation, or translation reference rather than independent application logic.
+
+## Interfaces and dependencies
+Used by localization tooling or maintainers and relates to the canonical frontend locale contracts in the parent localization package.
+
+## Invariants
+Seed keys and placeholders stay compatible with canonical locale schemas, files remain deterministic UTF-8 text, and seed material must not become an unreviewed second runtime localization authority.

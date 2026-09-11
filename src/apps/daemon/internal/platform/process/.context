@@ -8,11 +8,11 @@ Daemon process implementation module.
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (8): `errors.go`, `kill_unix.go`, `kill_windows.go`, `process_attr_unix.go`, `process_attr_windows.go`, `startup_unix.go`, `startup_unix_test.go`, `startup_windows.go`
+- Direct files (11): `errors.go`, `kill_unix.go`, `kill_windows.go`, `orphan.go`, `orphan_unix.go`, `orphan_windows.go`, `process_attr_unix.go`, `process_attr_windows.go`, `startup_unix.go`, `startup_unix_test.go`, `startup_windows.go`
 
 ## Interfaces and dependencies
 - Go package: `process`.
-- Notable exported surface: `DisableStartup`, `EnableStartup`, `ErrUnsupportedPlatformFeature`, `GetDaemonSysProcAttr`, `GetHideWindowSysProcAttr`, `IsStartupEnabled`, `KillDaemonProcess`, `StartupSupported`.
+- Notable exported surface: `DisableStartup`, `EnableStartup`, `ErrUnsupportedPlatformFeature`, `GetDaemonSysProcAttr`, `GetHideWindowSysProcAttr`, `IsStartupEnabled`, `KillDaemonProcess`, `PidFileReaper`, `StartupSupported`, `WritePidFile`.
 - Daemon-local dependencies: none.
 - Direct daemon callers: `internal/adapters/api`, `internal/integrations/notifier`, `internal/platform/system`, `internal/runtime/proxy`, `internal/runtime/runtimecore`.
 

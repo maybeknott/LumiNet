@@ -4,7 +4,7 @@
 Native relay support.
 
 ## Contents
-- Direct files (4): `descriptor_parser.rs`, `link_cells.rs`, `mod.rs`, `websocket_cells.rs`
+- Direct files (21): `acl_filter.rs`, `batch_frame_codec.rs`, `blob_queue_aead.rs`, `descriptor_parser.rs`, `dispersal.rs`, `exit_node_codec.rs`, `identity_tunnel.rs`, `link_cells.rs`, `mesh_peer_route.rs`, `mod.rs`, `multi_core_supervisor.rs`, `quota_tracker.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
@@ -15,6 +17,15 @@ DIRECT_TOOLS = {
     "graphify.sh",
     "mobile_bind.sh",
 }
+
+# These focused guards are intentionally aggregated by this tooling-surface
+# entrypoint. Keeping the relationship explicit makes them part of release
+# admission while preserving the zero-orphan requirement for every other
+# internal implementation file.
+AGGREGATED_CHECKS = (
+    "check_control_ui_api_authority.py",
+    "check_control_ui_feature_ownership.py",
+)
 
 RETIRED_PATHS = {
     "scripts/analyze_to_port.py": "one-off TO PORT analyzer with a developer-specific absolute path and no live caller",
@@ -59,6 +70,17 @@ for path in sorted(SCRIPTS.iterdir()):
     if path.is_dir() and path.name not in allowed_root_dirs:
         errors.append(f"unexpected scripts-root directory: scripts/{path.name}")
 
+# Run the focused Control UI governance guards through this canonical tooling
+# admission entrypoint. A child failure remains a release-admission failure.
+for name in AGGREGATED_CHECKS:
+    child = SCRIPTS / "checks" / name
+    if not child.is_file():
+        errors.append(f"aggregated tooling guard is missing: {child.relative_to(ROOT).as_posix()}")
+        continue
+    completed = subprocess.run([sys.executable, str(child)], cwd=ROOT, check=False)
+    if completed.returncode != 0:
+        errors.append(f"aggregated tooling guard failed: {child.relative_to(ROOT).as_posix()}")
+
 callers: list[tuple[str, str]] = []
 for path in [ROOT / "Makefile"]:
     if path.is_file():
@@ -82,6 +104,8 @@ for base in (SCRIPTS / "checks", SCRIPTS / "generate"):
             continue
         relative = path.relative_to(ROOT).as_posix()
         refs = [caller for caller, body in callers if caller != relative and (relative in body or path.name in body)]
+        if path.name in AGGREGATED_CHECKS:
+            refs.append("scripts/checks/check_tooling_surface.py")
         if not refs:
             errors.append(f"internal tooling implementation has no live caller: {relative}")
 

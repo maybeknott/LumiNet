@@ -7,6 +7,9 @@ from pathlib import Path, PurePosixPath
 ROOT=Path(os.environ.get('LUMINET_229_TARGET_ROOT',Path(__file__).resolve().parents[2]))
 E=ROOT/'governance/convergence'
 WORK=Path(os.environ.get('LUMINET_229_WORK_ROOT','/mnt/data/luminet229_work'))
+if not WORK.is_dir():
+ print(f'SKIP: post-refactor-229 donor archives not mounted at {WORK}; the donor cross-check is machine-local and cannot run here.')
+ sys.exit(0)
 DONORS={
  'hiddify-app-main':WORK/'donors/hiddify-app-main',
  'ProxyCloud-master':WORK/'donors/ProxyCloud-master',

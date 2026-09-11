@@ -14,7 +14,7 @@ Daemon boundedio implementation module.
 - Go package: `boundedio`.
 - Notable exported surface: `ReadLine`.
 - Daemon-local dependencies: none.
-- Direct daemon callers: `internal/platform/system`, `internal/runtime/proxy`.
+- Direct daemon callers: `internal/networking/transport`, `internal/platform/system`, `internal/runtime/proxy`.
 
 ## Invariants
 - `foundation` code must not import a higher-rank daemon band.

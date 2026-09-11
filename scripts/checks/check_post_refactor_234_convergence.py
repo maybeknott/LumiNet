@@ -3,7 +3,10 @@ from __future__ import annotations
 import csv,hashlib,json,os,stat,sys,zipfile
 from collections import defaultdict,Counter
 from pathlib import Path,PurePosixPath
-ROOT=Path(os.environ.get('LUMINET_234_TARGET_ROOT',Path(__file__).resolve().parents[2]));WORK=Path(os.environ.get('LUMINET_234_WORK_ROOT','/mnt/data/luminet234'));E=ROOT/'governance/convergence';DON=WORK/'donors'
+ROOT=Path(os.environ.get('LUMINET_234_TARGET_ROOT',Path(__file__).resolve().parents[2]));WORK=Path(os.environ.get('LUMINET_234_WORK_ROOT','/mnt/data/luminet234'))
+if not WORK.is_dir():
+ print(f'SKIP: post-refactor-234 donor archives not mounted at {WORK}; the donor cross-check is machine-local and cannot run here.')
+ sys.exit(0);E=ROOT/'governance/convergence';DON=WORK/'donors'
 ROOTMAP={'whitedns_android':('whitedns_android_234','WhiteDNS-Android-main'),'proofmode_android':('proofmode_android','proofmode-android-main'),'dns_blocklists':('dns_blocklists','dns-blocklists-main'),'tor_metrics_library':('library','library-master'),'mitmproxy2swagger':('mitmproxy2swagger','mitmproxy2swagger-master'),'outline_tun2socks_demo':('outline_tun2socks_demo','outline-go-tun2socks-demo-main'),'outline_apps':('outline_apps','outline-apps-master'),'kingo_vpn':('kingo_vpn','Kingo-vpn-main'),'simplednscrypt':('simplednscrypt','SimpleDnsCrypt-master'),'proxybridge':('proxybridge','ProxyBridge-master'),'skivpn':('skivpn','skivpn-main'),'tor_atlas':('atlas','atlas-master'),'whitedns_cleanip':('whitedns_cleanip_234','WhiteDNS-cleanip-finder-main')}
 HIGH={'implementation','ui-or-product','configuration','deployment','script','test'};assertions=0;errors=[]
 def check(c,m):

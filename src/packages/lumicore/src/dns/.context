@@ -4,7 +4,7 @@
 Native DNS parsing/probing logic.
 
 ## Contents
-- Direct files (10): `anonymized_dns.rs`, `antipoison.rs`, `dns_client.rs`, `dnsproxy.rs`, `doh.rs`, `dot.rs`, `hosts_optimizer.rs`, `mod.rs`, `packet.rs`, `udp.rs`
+- Direct files (25): `anonymized_dns.rs`, `antipoison.rs`, `dns_arq_window_codec.rs`, `dns_blocklist_engine.rs`, `dns_client.rs`, `dns_poison_filter.rs`, `dns_tunnel_codec.rs`, `dns_wizard_profile_generator.rs`, `dnsproxy.rs`, `doh.rs`, `doh_client_pool.rs`, `doh_fallback_hierarchy.rs` …
 
 ## Interfaces and dependencies
 - Rust module membership is controlled by `mod.rs`/`lib.rs`; Cargo is compile authority.

@@ -1,0 +1,13 @@
+# src/apps/android/app/src/androidTest/java/com
+
+## Purpose
+Maintains the top-level Java/Kotlin namespace segment for Android instrumentation tests.
+
+## Contents
+Contains the `luminet` namespace and its nested test packages.
+
+## Interfaces and dependencies
+Participates only in source/package layout; Gradle and the compiler resolve classes below this namespace during instrumentation-test builds.
+
+## Invariants
+The directory hierarchy must stay aligned with package declarations, remain test-only, and must not become an alternate production implementation root.

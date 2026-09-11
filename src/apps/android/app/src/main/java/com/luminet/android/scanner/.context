@@ -1,0 +1,13 @@
+# src/apps/android/app/src/main/java/com/luminet/android/scanner
+
+## Purpose
+Integrates network scanning and diagnostic capabilities into the Android application surface.
+
+## Contents
+Contains Android-facing scan models, coordinators, and adapters that invoke or present scanner behavior.
+
+## Interfaces and dependencies
+Consumed by Android UI/service flows and depends on networking/scanner contracts plus Android lifecycle and permission facilities when applicable.
+
+## Invariants
+Scan cancellation and lifecycle termination must propagate, partial diagnostics must not be reported as complete success, and network work must respect Android permission/state constraints.

@@ -5,6 +5,7 @@ publish = false
 edition = "2021"
 
 [package.metadata]
+cargo-fuzz = true
 notes = "R5 hardening: cargo-fuzz targets. Run with: cargo +nightly fuzz run quic_initial_parse -- -max_len=4096"
 
 [dependencies]

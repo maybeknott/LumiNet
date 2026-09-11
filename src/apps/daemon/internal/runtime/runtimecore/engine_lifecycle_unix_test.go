@@ -20,7 +20,7 @@ func fakeEngineBinary(t *testing.T, body string) string {
 	return path
 }
 
-func TesttorEngineRejectsImmediateProcessExit(t *testing.T) {
+func TestTorEngineRejectsImmediateProcessExit(t *testing.T) {
 	eng := newTorEngine(19050, 19051)
 	eng.binaryPath = fakeEngineBinary(t, "exit 7")
 	if err := eng.Start(); err == nil {
@@ -42,7 +42,7 @@ func TestPsiphonEngineRejectsImmediateProcessExit(t *testing.T) {
 	}
 }
 
-func TesttorEngineUsesUniqueInstanceConfig(t *testing.T) {
+func TestTorEngineUsesUniqueInstanceConfig(t *testing.T) {
 	binary := fakeEngineBinary(t, "sleep 5")
 	first := newTorEngine(19150, 19151)
 	first.binaryPath = binary
@@ -69,7 +69,7 @@ func TesttorEngineUsesUniqueInstanceConfig(t *testing.T) {
 	}
 }
 
-func TesttorEngineWaitsForFullBootstrap(t *testing.T) {
+func TestTorEngineWaitsForFullBootstrap(t *testing.T) {
 	eng := newTorEngine(19250, 19251)
 	eng.binaryPath = fakeEngineBinary(t, "sleep 5")
 	eng.startupTimeout = time.Second
@@ -93,7 +93,7 @@ func TesttorEngineWaitsForFullBootstrap(t *testing.T) {
 	}
 }
 
-func TesttorEngineRejectsLiveProcessThatNeverBootstraps(t *testing.T) {
+func TestTorEngineRejectsLiveProcessThatNeverBootstraps(t *testing.T) {
 	eng := newTorEngine(19350, 19351)
 	eng.binaryPath = fakeEngineBinary(t, "sleep 5")
 	eng.startupTimeout = 50 * time.Millisecond
@@ -107,7 +107,7 @@ func TesttorEngineRejectsLiveProcessThatNeverBootstraps(t *testing.T) {
 	}
 }
 
-func TesttorEngineRetriesTemporaryBootstrapProbeErrors(t *testing.T) {
+func TestTorEngineRetriesTemporaryBootstrapProbeErrors(t *testing.T) {
 	eng := newTorEngine(19450, 19451)
 	eng.binaryPath = fakeEngineBinary(t, "sleep 5")
 	eng.startupTimeout = time.Second

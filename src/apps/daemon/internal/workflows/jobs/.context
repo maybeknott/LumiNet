@@ -8,12 +8,12 @@ Typed async job-intent owner, queue/worker lifecycle, secret-safe history, progr
 - Cross-band imports may point only to a lower rank. Same-band imports are allowed when they remain within one architectural layer.
 
 ## Contents
-- Direct files (14): `broadcaster.go`, `completion.go`, `diagnostic_plan.go`, `diagnostic_plan_test.go`, `dispatcher.go`, `intent_test.go`, `intents.go`, `manager.go`, `manager_admission_test.go`, `manager_history_test.go`, `recovery.go`, `recovery_test.go` …
+- Direct files (18): `broadcaster.go`, `completion.go`, `diagnostic_plan.go`, `diagnostic_plan_test.go`, `dispatcher.go`, `intent_test.go`, `intents.go`, `logbatcher.go`, `logbatcher_test.go`, `manager.go`, `manager_admission_test.go`, `manager_history_test.go` …
 
 ## Interfaces and dependencies
 - Go package: `jobs`.
-- Notable exported surface: `Broadcaster`, `CdnScanIntent`, `DiagnosticIntent`, `DnsScanIntent`, `EdgeDeployIntent`, `IcmpScanIntent`, `IpDiscoveryIntent`, `Job`, `JobEvent`, `JobFilter` …
-- Daemon-local dependencies: `internal/analysis/diagnostics`, `internal/analysis/scanner`, `internal/foundation/evidence`, `internal/foundation/store`, `internal/integrations/provision`, `internal/native/bridge`, `internal/networking/proxyconfig`, `internal/platform/system`, `internal/runtime/proxy`, `internal/workflows/scheduler`.
+- Notable exported surface: `BatchedRecords`, `Broadcaster`, `CdnScanIntent`, `DiagnosticIntent`, `DnsScanIntent`, `EdgeDeployIntent`, `IcmpScanIntent`, `IpDiscoveryIntent`, `Job`, `JobEvent` …
+- Daemon-local dependencies: `internal/analysis/diagnostics`, `internal/analysis/scanner`, `internal/foundation/evidence`, `internal/foundation/store`, `internal/integrations/provision`, `internal/native/bridge`, `internal/networking/proxyconfig`, `internal/runtime/proxy`, `internal/workflows/scheduler`.
 - Direct daemon callers: `cmd`, `internal/adapters/api`.
 
 ## Invariants

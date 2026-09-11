@@ -8,6 +8,9 @@ from pathlib import Path, PurePosixPath
 ROOT=Path(os.environ.get('LUMINET_232_TARGET_ROOT',Path(__file__).resolve().parents[2]))
 WORK=Path(os.environ.get('LUMINET_232_WORK_ROOT','/mnt/data/luminet232_work'))
 E=ROOT/'governance/convergence'; BASE=E/'post-refactor-232-baseline-files.csv'; DONOR_BASE=WORK/'donors'
+if not WORK.is_dir() or not Path('/mnt/data/LumiNet-post-refactor-232-source-inventory.csv').is_file():
+ print(f'SKIP: post-refactor-232 donor archives not mounted at {WORK}; the donor cross-check is machine-local and cannot run here.')
+ sys.exit(0)
 ROOTS={'splitpt':'splitpt-main','dns-tunnel-deploy':'dns-tunnel-deploy-main','outline-client':'outline-client-master','pydns-scanner':'PYDNS-Scanner-main'}
 HIGH={'implementation','ui-or-product','configuration','deployment','script','test'}
 assertions=0; errors=[]

@@ -8,8 +8,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-
-	"github.com/Microsoft/go-winio"
 )
 
 func TestIpcListener_AcceptLoop(t *testing.T) {
@@ -41,15 +39,9 @@ func TestIpcListener_AcceptLoop(t *testing.T) {
 	// Sleep briefly to let loop start
 	time.Sleep(50 * time.Millisecond)
 
-	// Connect to the listener
-	addr := listener.path
-	var conn net.Conn
-	if runtime.GOOS == "windows" {
-		conn, err = winio.DialPipe(addr, nil)
-	} else {
-		conn, err = net.Dial("unix", addr)
-	}
-
+	// Connect using the platform-native IPC transport. Keeping the dialer in
+	// build-tagged test helpers avoids importing Windows-only packages on Unix.
+	conn, err := dialTestIPC(listener.path)
 	if err != nil {
 		t.Fatalf("failed to dial listener: %v", err)
 	}

@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java/com/luminet/android/tunnel
+
+## Purpose
+Provides host-side unit coverage for Android tunnel and VPN lifecycle coordination logic.
+
+## Contents
+Contains JVM tests and fixtures for tunnel state transitions, routing decisions, and lifecycle helpers that can run without a device.
+
+## Interfaces and dependencies
+Exercises production tunnel contracts through mocks or pure logic while Gradle supplies application and test dependencies.
+
+## Invariants
+Tests must characterize cleanup and transition semantics, remain deterministic without a live VPN, and prevent shared lifecycle state from leaking between cases.

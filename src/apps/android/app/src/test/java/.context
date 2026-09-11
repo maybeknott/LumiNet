@@ -1,0 +1,13 @@
+# src/apps/android/app/src/test/java
+
+## Purpose
+Provides the JVM package root for local Android application unit tests.
+
+## Contents
+Contains namespace directories leading to LumiNet host-side unit and behavior tests.
+
+## Interfaces and dependencies
+Used by Gradle and the JVM compiler for the local test source set, with dependencies on application contracts and test doubles.
+
+## Invariants
+Only local test sources belong here; package layout must match declarations and tests must not rely on production packaging side effects.
